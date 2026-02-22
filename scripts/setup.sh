@@ -78,20 +78,6 @@ clone_repos() {
         log_success "betterbase-sync already exists"
     fi
 
-    if [ ! -d betterbase-db ]; then
-        log_info "Cloning betterbase-db..."
-        git clone git@github.com:BetterbaseHQ/betterbase-db.git
-    else
-        log_success "betterbase-db already exists"
-    fi
-
-    if [ ! -d betterbase-db ]; then
-        log_info "Cloning betterbase-db..."
-        git clone git@github.com:BetterbaseHQ/betterbase-db.git
-    else
-        log_success "betterbase-db already exists"
-    fi
-
     if [ ! -d betterbase-inference ]; then
         log_info "Cloning betterbase-inference..."
         git clone git@github.com:BetterbaseHQ/betterbase-inference.git
@@ -104,6 +90,13 @@ clone_repos() {
         git clone git@github.com:BetterbaseHQ/betterbase.git
     else
         log_success "betterbase already exists"
+    fi
+
+    if [ ! -d betterbase-examples ]; then
+        log_info "Cloning betterbase-examples..."
+        git clone git@github.com:BetterbaseHQ/betterbase-examples.git
+    else
+        log_success "betterbase-examples already exists"
     fi
 }
 
