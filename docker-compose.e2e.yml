@@ -1,0 +1,156 @@
+# E2E test overrides — isolated volumes, no caddy/cap/examples.
+# Uses e2e-prefixed volumes so e2e-clean can never delete dev/prod data.
+#
+# Adds Server B for federation e2e tests:
+#   accounts-b (host:25387), sync-b (host:25389)
+services:
+  # Disable services not needed for e2e
+  caddy:
+    profiles: ["disabled"]
+
+  launchpad:
+    profiles: ["disabled"]
+
+  tasks:
+    profiles: ["disabled"]
+
+  passwords:
+    profiles: ["disabled"]
+
+  # ===========================================================================
+  # Server A overrides
+  # ===========================================================================
+  accounts:
+    ports:
+      - "25377:5377"
+    environment:
+      - SMTP_DEV_MODE=true
+      - SMTP_FROM=noreply@localhost
+      - CAP_KEY_ID=
+      - CAP_SECRET=
+      # Override issuer to browser-reachable URL (must match TRUSTED_ISSUERS in sync)
+      - OAUTH_ISSUER=http://localhost:25377
+      # Override so discovery returns browser-reachable URLs for e2e tests
+      - SYNC_ENDPOINT=http://localhost:25379/api/v1
+      # Federation: advertise s2s WS endpoint (internal Docker URL for s2s peers)
+      - FEDERATION_WS_ENDPOINT=ws://sync:5379/api/v1/federation/ws
+    volumes: []
+
+  sync:
+    ports:
+      - "25379:5379"
+    environment:
+      - FILE_STORAGE=fs
+      - FILE_FS_PATH=/var/lib/betterbase-sync/files
+      # Trust both accounts servers (Server A + Server B)
+      - TRUSTED_ISSUERS=http://localhost:25377=http://accounts:5377/.well-known/jwks.json http://localhost:25387=http://accounts-b:5377/.well-known/jwks.json
+      # Federation: auto-generate signing key for this domain
+      - FEDERATION_DOMAIN=sync:5379
+      - FEDERATION_TRUSTED_DOMAINS=sync-b
+      - FEDERATION_TRUSTED_KEYS=${FEDERATION_TRUSTED_KEYS_A:-}
+      - FEDERATION_FST_SECRET=${SPACE_SESSION_SECRET:-e2e-fst-secret}
+    depends_on:
+      accounts:
+        condition: service_healthy
+      sync-db:
+        condition: service_healthy
+    volumes: []
+
+  accounts-db:
+    volumes:
+      - e2e_accounts_db_data:/var/lib/postgresql/data
+
+  sync-db:
+    volumes:
+      - e2e_sync_db_data:/var/lib/postgresql/data
+
+  # ===========================================================================
+  # Server B (federation peer)
+  # ===========================================================================
+  accounts-db-b:
+    image: postgres:18-alpine
+    environment:
+      - POSTGRES_USER=${ACCOUNTS_DB_USER:-accounts}
+      - POSTGRES_PASSWORD=${ACCOUNTS_DB_PASSWORD:-accounts}
+      - POSTGRES_DB=${ACCOUNTS_DB_NAME:-accounts}
+      - PGDATA=/var/lib/postgresql/data
+    volumes:
+      - e2e_accounts_db_b_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U accounts -d accounts"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  accounts-b:
+    build: ../betterbase-accounts
+    ports:
+      - "25387:5377"
+    environment:
+      - OPAQUE_SERVER_SETUP=${OPAQUE_SERVER_SETUP_B:-}
+      - OAUTH_ISSUER=http://localhost:25387
+      - DATABASE_URL=postgres://${ACCOUNTS_DB_USER:-accounts}:${ACCOUNTS_DB_PASSWORD:-accounts}@accounts-db-b:5432/${ACCOUNTS_DB_NAME:-accounts}?sslmode=disable
+      - CAP_VERIFY_URL=
+      - CAP_KEY_ID=
+      - CAP_SECRET=
+      - IDENTITY_HASH_KEY=${IDENTITY_HASH_KEY}
+      - SYNC_ENDPOINT=http://localhost:25389/api/v1
+      - FEDERATION_WS_ENDPOINT=ws://sync-b:5379/api/v1/federation/ws
+      - SMTP_DEV_MODE=true
+      - SMTP_FROM=noreply@localhost
+    depends_on:
+      accounts-db-b:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5377/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  sync-db-b:
+    image: postgres:18-alpine
+    environment:
+      - POSTGRES_USER=${SYNC_DB_USER:-sync}
+      - POSTGRES_PASSWORD=${SYNC_DB_PASSWORD:-sync}
+      - POSTGRES_DB=${SYNC_DB_NAME:-sync}
+      - PGDATA=/var/lib/postgresql/data
+    volumes:
+      - e2e_sync_db_b_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sync -d sync"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  sync-b:
+    build: ../betterbase-sync
+    ports:
+      - "25389:5379"
+    environment:
+      - DATABASE_URL=postgres://${SYNC_DB_USER:-sync}:${SYNC_DB_PASSWORD:-sync}@sync-db-b:5432/${SYNC_DB_NAME:-sync}?sslmode=disable
+      # Trust both accounts servers (Server A + Server B)
+      - TRUSTED_ISSUERS=http://localhost:25377=http://accounts:5377/.well-known/jwks.json http://localhost:25387=http://accounts-b:5377/.well-known/jwks.json
+      - AUDIENCES=betterbase-sync
+      - FILE_STORAGE=fs
+      - FILE_FS_PATH=/var/lib/betterbase-sync/files
+      # Federation: auto-generate signing key for this domain
+      - FEDERATION_DOMAIN=sync-b:5379
+      - FEDERATION_TRUSTED_DOMAINS=sync
+      - FEDERATION_TRUSTED_KEYS=${FEDERATION_TRUSTED_KEYS_B:-}
+      - FEDERATION_FST_SECRET=${SPACE_SESSION_SECRET:-e2e-fst-secret}
+    depends_on:
+      accounts-b:
+        condition: service_healthy
+      sync-db-b:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5379/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  e2e_accounts_db_data:
+  e2e_sync_db_data:
+  e2e_accounts_db_b_data:
+  e2e_sync_db_b_data:

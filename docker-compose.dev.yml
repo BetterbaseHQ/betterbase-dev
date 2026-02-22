@@ -1,0 +1,172 @@
+# Development overrides — must be explicitly passed with -f (not auto-loaded).
+# Uses dev-prefixed volumes so dev-down -v can never delete prod data.
+services:
+  # Disable caddy in dev — services are accessed directly
+  caddy:
+    profiles: ["production"]
+
+  accounts:
+    build:
+      context: ../betterbase-accounts
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../betterbase-accounts:/app
+      - /app/crates/api/assets
+    ports:
+      - "5377:5377"
+    environment:
+      - SMTP_DEV_MODE=true
+      - SMTP_FROM=noreply@localhost
+      # Override endpoints so discovery returns browser-reachable URLs
+      - OAUTH_ISSUER=http://localhost:5377
+      - SYNC_ENDPOINT=http://localhost:5379/api/v1
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5377/health"]
+      start_period: 60s
+
+  accounts-db:
+    volumes:
+      - dev_accounts_db_data:/var/lib/postgresql/data
+
+  sync:
+    build:
+      context: ../betterbase-sync
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../betterbase-sync:/app
+      - /app/tmp
+    ports:
+      - "5379:5379"
+    environment:
+      # Must match the OAUTH_ISSUER override on accounts so JWT issuer validation passes
+      - TRUSTED_ISSUERS=http://localhost:5377=http://accounts:5377/.well-known/jwks.json
+      # Enable file storage (filesystem-backed in dev)
+      - FILE_STORAGE=fs
+      - FILE_FS_PATH=/var/lib/betterbase-sync/files
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5379/health"]
+      start_period: 30s
+
+  sync-db:
+    volumes:
+      - dev_sync_db_data:/var/lib/postgresql/data
+
+  cap:
+    volumes:
+      - dev_cap_data:/data
+
+  launchpad:
+    build:
+      context: .
+      dockerfile: ../betterbase-examples/launchpad/Dockerfile.dev
+    volumes:
+      - ../betterbase-examples/launchpad:/workspace/examples/launchpad
+      - /workspace/examples/launchpad/node_modules
+    ports:
+      - "5380:5380"
+    environment:
+      - ACCOUNTS_URL=http://accounts:5377
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5380/"]
+      start_period: 20s
+
+  tasks:
+    build:
+      context: .
+      dockerfile: ../betterbase-examples/tasks/Dockerfile.dev
+    volumes:
+      - ../betterbase-examples/tasks:/workspace/examples/tasks
+      - /workspace/examples/tasks/node_modules
+    ports:
+      - "5381:5381"
+    environment:
+      - ACCOUNTS_URL=http://accounts:5377
+      - SYNC_URL=http://sync:5379
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5381/"]
+      start_period: 20s
+
+  notes:
+    build:
+      context: .
+      dockerfile: ../betterbase-examples/notes/Dockerfile.dev
+    volumes:
+      - ../betterbase-examples/notes:/workspace/examples/notes
+      - /workspace/examples/notes/node_modules
+    ports:
+      - "5382:5382"
+    environment:
+      - ACCOUNTS_URL=http://accounts:5377
+      - SYNC_URL=http://sync:5379
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5382/"]
+      start_period: 20s
+
+  photos:
+    build:
+      context: .
+      dockerfile: ../betterbase-examples/photos/Dockerfile.dev
+    volumes:
+      - ../betterbase-examples/photos:/workspace/examples/photos
+      - /workspace/examples/photos/node_modules
+    ports:
+      - "5383:5383"
+    environment:
+      - ACCOUNTS_URL=http://accounts:5377
+      - SYNC_URL=http://sync:5379
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5383/"]
+      start_period: 20s
+
+  board:
+    build:
+      context: .
+      dockerfile: ../betterbase-examples/board/Dockerfile.dev
+    volumes:
+      - ../betterbase-examples/board:/workspace/examples/board
+      - /workspace/examples/board/node_modules
+    ports:
+      - "5384:5384"
+    environment:
+      - ACCOUNTS_URL=http://accounts:5377
+      - SYNC_URL=http://sync:5379
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5384/"]
+      start_period: 20s
+
+  passwords:
+    build:
+      context: .
+      dockerfile: ../betterbase-examples/passwords/Dockerfile.dev
+    volumes:
+      - ../betterbase-examples/passwords:/workspace/examples/passwords
+      - /workspace/examples/passwords/node_modules
+    ports:
+      - "5387:5387"
+    environment:
+      - ACCOUNTS_URL=http://accounts:5377
+      - SYNC_URL=http://sync:5379
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5387/"]
+      start_period: 20s
+
+  chat:
+    build:
+      context: .
+      dockerfile: ../betterbase-examples/chat/Dockerfile.dev
+    volumes:
+      - ../betterbase-examples/chat:/workspace/examples/chat
+      - /workspace/examples/chat/node_modules
+    ports:
+      - "5385:5385"
+    environment:
+      - ACCOUNTS_URL=http://accounts:5377
+      - SYNC_URL=http://sync:5379
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5385/"]
+      start_period: 20s
+
+volumes:
+  dev_accounts_db_data:
+  dev_sync_db_data:
+  dev_cap_data:
