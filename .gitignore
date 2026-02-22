@@ -4,3 +4,10 @@ dist/
 .DS_Store
 .env
 test-results/
+
+# Cloned service repos (managed by scripts/setup.sh)
+/betterbase-accounts/
+/betterbase-sync/
+/betterbase-inference/
+/betterbase/
+/betterbase-examples/

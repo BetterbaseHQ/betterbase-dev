@@ -57,7 +57,7 @@ services:
       retries: 5
 
   accounts:
-    build: ../betterbase-accounts
+    build: ./betterbase-accounts
     # Port exposed via Caddy with rate limiting
     expose:
       - "5377"
@@ -99,7 +99,7 @@ services:
       retries: 5
 
   sync:
-    build: ../betterbase-sync
+    build: ./betterbase-sync
     # Port exposed via Caddy with rate limiting
     expose:
       - "5379"

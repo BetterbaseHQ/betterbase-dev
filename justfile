@@ -11,12 +11,12 @@ default:
 # Pull latest changes for all repos
 pull:
     git pull
-    cd ../betterbase-accounts && git pull
-    cd ../betterbase-db && git pull
-    cd ../betterbase-inference && git pull
-    cd ../betterbase && git pull
-    cd ../betterbase-sync && git pull
-    cd ../betterbase-db && git pull
+    cd ./betterbase-accounts && git pull
+    cd ./betterbase-db && git pull
+    cd ./betterbase-inference && git pull
+    cd ./betterbase && git pull
+    cd ./betterbase-sync && git pull
+    cd ./betterbase-db && git pull
 
 # Set up everything for first run (clone repos, generate keys, create .env)
 setup:
@@ -68,17 +68,17 @@ up-build:
     NEED_SETUP=false
 
     # Check if launchpad needs OAuth setup
-    if [ ! -f "../betterbase-examples/launchpad/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "../betterbase-examples/launchpad/.env"; then
+    if [ ! -f "./betterbase-examples/launchpad/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "./betterbase-examples/launchpad/.env"; then
         NEED_SETUP=true
     fi
 
     # Check if tasks needs OAuth setup
-    if [ ! -f "../betterbase-examples/tasks/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "../betterbase-examples/tasks/.env"; then
+    if [ ! -f "./betterbase-examples/tasks/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "./betterbase-examples/tasks/.env"; then
         NEED_SETUP=true
     fi
 
     # Check if photos needs OAuth setup
-    if [ ! -f "../betterbase-examples/photos/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "../betterbase-examples/photos/.env"; then
+    if [ ! -f "./betterbase-examples/photos/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "./betterbase-examples/photos/.env"; then
         NEED_SETUP=true
     fi
 
@@ -106,37 +106,37 @@ check: fmt lint test
 # Run checks on all repos (accounts, sync, and integration)
 check-all:
     @echo "=== Checking betterbase-accounts ==="
-    cd ../betterbase-accounts && just check
+    cd ./betterbase-accounts && just check
     @echo ""
     @echo "=== Checking betterbase-db ==="
-    cd ../betterbase-db && just check
+    cd ./betterbase-db && just check
     @echo ""
     @echo "=== Checking betterbase-sync ==="
-    cd ../betterbase-sync && just check
+    cd ./betterbase-sync && just check
     @echo ""
     @echo "=== Checking shared package ==="
-    cd ../betterbase-examples/shared && pnpm check
+    cd ./betterbase-examples/shared && pnpm check
     @echo ""
     @echo "=== Checking launchpad app ==="
-    cd ../betterbase-examples/launchpad && pnpm check
+    cd ./betterbase-examples/launchpad && pnpm check
     @echo ""
     @echo "=== Checking tasks app ==="
-    cd ../betterbase-examples/tasks && pnpm check
+    cd ./betterbase-examples/tasks && pnpm check
     @echo ""
     @echo "=== Checking notes app ==="
-    cd ../betterbase-examples/notes && pnpm check
+    cd ./betterbase-examples/notes && pnpm check
     @echo ""
     @echo "=== Checking photos app ==="
-    cd ../betterbase-examples/photos && pnpm check
+    cd ./betterbase-examples/photos && pnpm check
     @echo ""
     @echo "=== Checking board app ==="
-    cd ../betterbase-examples/board && pnpm check
+    cd ./betterbase-examples/board && pnpm check
     @echo ""
     @echo "=== Checking passwords app ==="
-    cd ../betterbase-examples/passwords && pnpm check
+    cd ./betterbase-examples/passwords && pnpm check
     @echo ""
     @echo "=== Checking chat app ==="
-    cd ../betterbase-examples/chat && pnpm check
+    cd ./betterbase-examples/chat && pnpm check
     @echo ""
     @echo "=== Checking integration tests ==="
     just check
@@ -349,22 +349,22 @@ status:
     @git status -s || true
     @echo ""
     @echo "=== betterbase-accounts ==="
-    @cd ../betterbase-accounts && git status -s || true
+    @cd ./betterbase-accounts && git status -s || true
     @echo ""
     @echo "=== betterbase-db ==="
-    @cd ../betterbase-db && git status -s || true
+    @cd ./betterbase-db && git status -s || true
     @echo ""
     @echo "=== betterbase-inference ==="
-    @cd ../betterbase-inference && git status -s || true
+    @cd ./betterbase-inference && git status -s || true
     @echo ""
     @echo "=== betterbase ==="
-    @cd ../betterbase && git status -s || true
+    @cd ./betterbase && git status -s || true
     @echo ""
     @echo "=== betterbase-sync ==="
-    @cd ../betterbase-sync && git status -s || true
+    @cd ./betterbase-sync && git status -s || true
     @echo ""
     @echo "=== betterbase-db ==="
-    @cd ../betterbase-db && git status -s || true
+    @cd ./betterbase-db && git status -s || true
 
 # Show git diff for all repos
 git-diff:
@@ -372,42 +372,42 @@ git-diff:
     @git diff --stat
     @echo ""
     @echo "=== betterbase-accounts ==="
-    @cd ../betterbase-accounts && git diff --stat
+    @cd ./betterbase-accounts && git diff --stat
     @echo ""
     @echo "=== betterbase-db ==="
-    @cd ../betterbase-db && git diff --stat
+    @cd ./betterbase-db && git diff --stat
     @echo ""
     @echo "=== betterbase-inference ==="
-    @cd ../betterbase-inference && git diff --stat
+    @cd ./betterbase-inference && git diff --stat
     @echo ""
     @echo "=== betterbase ==="
-    @cd ../betterbase && git diff --stat
+    @cd ./betterbase && git diff --stat
     @echo ""
     @echo "=== betterbase-sync ==="
-    @cd ../betterbase-sync && git diff --stat
+    @cd ./betterbase-sync && git diff --stat
     @echo ""
     @echo "=== betterbase-db ==="
-    @cd ../betterbase-db && git diff --stat
+    @cd ./betterbase-db && git diff --stat
 
 # Show current branch for all repos
 git-branch:
     @echo "betterbase: $(git branch --show-current)"
-    @echo "betterbase-accounts: $(cd ../betterbase-accounts && git branch --show-current)"
-    @echo "betterbase-db: $(cd ../betterbase-db && git branch --show-current)"
-    @echo "betterbase-inference: $(cd ../betterbase-inference && git branch --show-current)"
-    @echo "betterbase-js: $(cd ../betterbase && git branch --show-current)"
-    @echo "betterbase-sync: $(cd ../betterbase-sync && git branch --show-current)"
-    @echo "betterbase-db-rs: $(cd ../betterbase-db && git branch --show-current)"
+    @echo "betterbase-accounts: $(cd ./betterbase-accounts && git branch --show-current)"
+    @echo "betterbase-db: $(cd ./betterbase-db && git branch --show-current)"
+    @echo "betterbase-inference: $(cd ./betterbase-inference && git branch --show-current)"
+    @echo "betterbase-js: $(cd ./betterbase && git branch --show-current)"
+    @echo "betterbase-sync: $(cd ./betterbase-sync && git branch --show-current)"
+    @echo "betterbase-db-rs: $(cd ./betterbase-db && git branch --show-current)"
 
 # Fetch latest from origin for all repos (without merging)
 git-fetch:
     git fetch
-    cd ../betterbase-accounts && git fetch
-    cd ../betterbase-db && git fetch
-    cd ../betterbase-inference && git fetch
-    cd ../betterbase && git fetch
-    cd ../betterbase-sync && git fetch
-    cd ../betterbase-db && git fetch
+    cd ./betterbase-accounts && git fetch
+    cd ./betterbase-db && git fetch
+    cd ./betterbase-inference && git fetch
+    cd ./betterbase && git fetch
+    cd ./betterbase-sync && git fetch
+    cd ./betterbase-db && git fetch
 
 # Push all repos to origin
 git-push:
@@ -415,22 +415,22 @@ git-push:
     git push
     @echo ""
     @echo "=== betterbase-accounts ==="
-    cd ../betterbase-accounts && git push
+    cd ./betterbase-accounts && git push
     @echo ""
     @echo "=== betterbase-db ==="
-    cd ../betterbase-db && git push
+    cd ./betterbase-db && git push
     @echo ""
     @echo "=== betterbase-inference ==="
-    cd ../betterbase-inference && git push
+    cd ./betterbase-inference && git push
     @echo ""
     @echo "=== betterbase ==="
-    cd ../betterbase && git push
+    cd ./betterbase && git push
     @echo ""
     @echo "=== betterbase-sync ==="
-    cd ../betterbase-sync && git push
+    cd ./betterbase-sync && git push
     @echo ""
     @echo "=== betterbase-db ==="
-    cd ../betterbase-db && git push
+    cd ./betterbase-db && git push
 
 # =============================================================================
 # Docker Operations
@@ -534,7 +534,7 @@ oauth-client-cmd *args:
 # Set up OAuth client for an example app
 # Usage: just setup-example <app-name> <port> [scopes...]
 setup-example app port *scopes:
-    ./scripts/setup-oauth-client.sh {{app}} {{port}} ../betterbase-examples/{{app}}/.env {{scopes}}
+    ./scripts/setup-oauth-client.sh {{app}} {{port}} ./betterbase-examples/{{app}}/.env {{scopes}}
 
 # Set up launchpad OAuth client (portal only — no sync needed)
 setup-launchpad:
@@ -589,7 +589,7 @@ e2e-up:
     # Generate Server B OPAQUE keys if not already set
     if ! grep -q "^OPAQUE_SERVER_SETUP_B=.\+" .env 2>/dev/null; then
         echo "Generating OPAQUE keys for Server B..."
-        SETUP_B=$(cd ../betterbase-accounts && SQLX_OFFLINE=true cargo run --release -p betterbase-accounts-keygen 2>/dev/null)
+        SETUP_B=$(cd ./betterbase-accounts && SQLX_OFFLINE=true cargo run --release -p betterbase-accounts-keygen 2>/dev/null)
         echo "" >> .env
         echo "# Server B (federation e2e)" >> .env
         echo "OPAQUE_SERVER_SETUP_B=$SETUP_B" >> .env

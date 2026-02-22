@@ -7,10 +7,10 @@ services:
 
   accounts:
     build:
-      context: ../betterbase-accounts
+      context: ./betterbase-accounts
       dockerfile: Dockerfile.dev
     volumes:
-      - ../betterbase-accounts:/app
+      - ./betterbase-accounts:/app
       - /app/crates/api/assets
     ports:
       - "5377:5377"
@@ -30,10 +30,10 @@ services:
 
   sync:
     build:
-      context: ../betterbase-sync
+      context: ./betterbase-sync
       dockerfile: Dockerfile.dev
     volumes:
-      - ../betterbase-sync:/app
+      - ./betterbase-sync:/app
       - /app/tmp
     ports:
       - "5379:5379"
@@ -58,9 +58,9 @@ services:
   launchpad:
     build:
       context: .
-      dockerfile: ../betterbase-examples/launchpad/Dockerfile.dev
+      dockerfile: ./betterbase-examples/launchpad/Dockerfile.dev
     volumes:
-      - ../betterbase-examples/launchpad:/workspace/examples/launchpad
+      - ./betterbase-examples/launchpad:/workspace/examples/launchpad
       - /workspace/examples/launchpad/node_modules
     ports:
       - "5380:5380"
@@ -73,9 +73,9 @@ services:
   tasks:
     build:
       context: .
-      dockerfile: ../betterbase-examples/tasks/Dockerfile.dev
+      dockerfile: ./betterbase-examples/tasks/Dockerfile.dev
     volumes:
-      - ../betterbase-examples/tasks:/workspace/examples/tasks
+      - ./betterbase-examples/tasks:/workspace/examples/tasks
       - /workspace/examples/tasks/node_modules
     ports:
       - "5381:5381"
@@ -89,9 +89,9 @@ services:
   notes:
     build:
       context: .
-      dockerfile: ../betterbase-examples/notes/Dockerfile.dev
+      dockerfile: ./betterbase-examples/notes/Dockerfile.dev
     volumes:
-      - ../betterbase-examples/notes:/workspace/examples/notes
+      - ./betterbase-examples/notes:/workspace/examples/notes
       - /workspace/examples/notes/node_modules
     ports:
       - "5382:5382"
@@ -105,9 +105,9 @@ services:
   photos:
     build:
       context: .
-      dockerfile: ../betterbase-examples/photos/Dockerfile.dev
+      dockerfile: ./betterbase-examples/photos/Dockerfile.dev
     volumes:
-      - ../betterbase-examples/photos:/workspace/examples/photos
+      - ./betterbase-examples/photos:/workspace/examples/photos
       - /workspace/examples/photos/node_modules
     ports:
       - "5383:5383"
@@ -121,9 +121,9 @@ services:
   board:
     build:
       context: .
-      dockerfile: ../betterbase-examples/board/Dockerfile.dev
+      dockerfile: ./betterbase-examples/board/Dockerfile.dev
     volumes:
-      - ../betterbase-examples/board:/workspace/examples/board
+      - ./betterbase-examples/board:/workspace/examples/board
       - /workspace/examples/board/node_modules
     ports:
       - "5384:5384"
@@ -137,9 +137,9 @@ services:
   passwords:
     build:
       context: .
-      dockerfile: ../betterbase-examples/passwords/Dockerfile.dev
+      dockerfile: ./betterbase-examples/passwords/Dockerfile.dev
     volumes:
-      - ../betterbase-examples/passwords:/workspace/examples/passwords
+      - ./betterbase-examples/passwords:/workspace/examples/passwords
       - /workspace/examples/passwords/node_modules
     ports:
       - "5387:5387"
@@ -153,9 +153,9 @@ services:
   chat:
     build:
       context: .
-      dockerfile: ../betterbase-examples/chat/Dockerfile.dev
+      dockerfile: ./betterbase-examples/chat/Dockerfile.dev
     volumes:
-      - ../betterbase-examples/chat:/workspace/examples/chat
+      - ./betterbase-examples/chat:/workspace/examples/chat
       - /workspace/examples/chat/node_modules
     ports:
       - "5385:5385"
