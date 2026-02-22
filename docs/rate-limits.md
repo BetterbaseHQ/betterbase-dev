@@ -10,7 +10,7 @@ High-value endpoints also require a **CAP proof-of-work token** before the reque
 
 All limits use a 1-minute sliding window keyed by client IP.
 
-### less-accounts (port 5377)
+### betterbase-accounts (port 5377)
 
 | Zone | Rate | Endpoints |
 |------|------|-----------|
@@ -24,7 +24,7 @@ All limits use a 1-minute sliding window keyed by client IP.
 | `accounts_relaxed` | 1000/min | `/health`, `/.well-known/jwks.json` |
 | `accounts_default` | 1000/min | Web UI and unmatched routes |
 
-### less-sync (port 5379)
+### betterbase-sync (port 5379)
 
 | Zone | Rate | Endpoints |
 |------|------|-----------|
@@ -40,7 +40,7 @@ All limits use a 1-minute sliding window keyed by client IP.
 
 Config: `caddy/Caddyfile`
 
-## Application — Per-Email Limits (less-accounts)
+## Application — Per-Email Limits (betterbase-accounts)
 
 ### Login attempts
 
@@ -68,7 +68,7 @@ After 8 failed attempts in 15 minutes, the account is locked. Successive lockout
 | Max attempts per code | 5 | `MaxVerificationAttempts` in `services/verification.go` |
 | Code expiry | 10 minutes | `VerificationCodeExpiry` in `services/verification.go` |
 
-## Application — Per-User Limits (less-sync)
+## Application — Per-User Limits (betterbase-sync)
 
 ### WebSocket connections
 

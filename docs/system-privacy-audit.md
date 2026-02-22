@@ -27,7 +27,7 @@ The [Multiplayer Privacy Plan](./multiplayer-privacy-plan.md) focused on shared 
 
 ## Service-by-Service Assessment
 
-### 1. less-accounts (Auth Service)
+### 1. betterbase-accounts (Auth Service)
 
 **Role:** Identity, authentication, key management, OAuth token issuance.
 
@@ -166,7 +166,7 @@ When `SMTP_DEV_MODE=true`, verification codes and email addresses are printed to
 
 ---
 
-### 2. less-sync (Sync Service)
+### 2. betterbase-sync (Sync Service)
 
 **Role:** Encrypted blob storage, real-time sync, invitations, membership.
 
@@ -258,7 +258,7 @@ The 4-byte epoch prefix in wrapped DEKs (`[epoch(4) || AES-KW(KEK, DEK)(40)]`) t
 
 ---
 
-### 3. less-inference (E2EE Inference Proxy)
+### 3. betterbase-inference (E2EE Inference Proxy)
 
 **Role:** Authenticated proxy to Tinfoil TEE for AI inference. True E2EE — proxy never sees plaintext prompts or completions.
 
@@ -542,9 +542,9 @@ The sync server fetches JWKS from `http://accounts:5377/.well-known/jwks.json`. 
 
 | Service | Logs user identity? | Status |
 |---------|-------------------|--------|
-| less-accounts | `account_id` in middleware + `recovery.go` error path | **Remove** from middleware, mark recovery as `// SECURITY:` (ACC-1) |
-| less-sync | No identity fields at all (gold standard) | Done |
-| less-inference | `issuer` + `user_id` in middleware AND 3x `user_id` in proxy handler | **Remove all** (INF-1) |
+| betterbase-accounts | `account_id` in middleware + `recovery.go` error path | **Remove** from middleware, mark recovery as `// SECURITY:` (ACC-1) |
+| betterbase-sync | No identity fields at all (gold standard) | Done |
+| betterbase-inference | `issuer` + `user_id` in middleware AND 3x `user_id` in proxy handler | **Remove all** (INF-1) |
 | Caddy | No | Done |
 
 **Target state:** Zero user identity in normal request logs across all services. Use `request_id` for log correlation. **Exception:** Security-critical events (authentication failures, token reuse detection, suspicious activity) may log identity for incident response — these should be clearly documented with `// SECURITY:` comments in code.
@@ -553,9 +553,9 @@ The sync server fetches JWKS from `http://accounts:5377/.well-known/jwks.json`. 
 
 | Service | Rate limit key | One-way? | Ephemeral? |
 |---------|---------------|----------|------------|
-| less-accounts | Plaintext `email` | **No** | Yes (TTL rows) |
-| less-sync | `HMAC(key, issuer + "\0" + userId)` | Yes | Yes (1-hour cleanup) |
-| less-inference | `issuer + ":" + userID` | **No** | Yes (in-memory) |
+| betterbase-accounts | Plaintext `email` | **No** | Yes (TTL rows) |
+| betterbase-sync | `HMAC(key, issuer + "\0" + userId)` | Yes | Yes (1-hour cleanup) |
+| betterbase-inference | `issuer + ":" + userID` | **No** | Yes (in-memory) |
 
 **Target state:** All services use HMAC-based pseudonymous rate limit keys. No plaintext identity in rate limit storage.
 
@@ -614,9 +614,9 @@ A compromised server binary can observe everything in transit memory:
 
 | Service | What It Can Learn |
 |---------|-------------------|
-| less-accounts | Plaintext emails (already has them), session tokens, OPAQUE protocol messages (but not passwords — OPAQUE is resistant) |
-| less-sync | Encrypted blobs (cannot decrypt), JWT claims (user identity), push/pull patterns in real-time |
-| less-inference | **Encrypted request/response bodies** (cannot decrypt — Tinfoil TEE), but **can exfiltrate `TINFOIL_API_KEY`** and forward encrypted traffic to a third party |
+| betterbase-accounts | Plaintext emails (already has them), session tokens, OPAQUE protocol messages (but not passwords — OPAQUE is resistant) |
+| betterbase-sync | Encrypted blobs (cannot decrypt), JWT claims (user identity), push/pull patterns in real-time |
+| betterbase-inference | **Encrypted request/response bodies** (cannot decrypt — Tinfoil TEE), but **can exfiltrate `TINFOIL_API_KEY`** and forward encrypted traffic to a third party |
 
 **Important:** The E2EE guarantee for inference depends entirely on the integrity of the proxy binary. A compromised proxy can forward the `TINFOIL_API_KEY` and encrypted payloads, allowing a third party to proxy to the same TEE. The TEE protects content confidentiality, but a compromised proxy breaks the authentication boundary. This is inherent to the proxy architecture.
 

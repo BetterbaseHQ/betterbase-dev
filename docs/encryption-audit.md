@@ -366,7 +366,7 @@ The epoch is not included in AAD. This means a ciphertext encrypted under epoch 
 
 *Added by expert review.*
 
-**Location:** `reencrypt.ts` (`advanceEpoch`, `rewrapAllDEKs`), `space-manager.ts`, `less-sync/storage/postgres.go`
+**Location:** `reencrypt.ts` (`advanceEpoch`, `rewrapAllDEKs`), `space-manager.ts`, `betterbase-sync/storage/postgres.go`
 
 **Was:** If crash/network failure occurred between epoch advance (CAS) and DEK re-wrap upload, the space was left in an unrecoverable state. The original basic fix used a client-side `pendingRewrap` flag, but this had a fundamental problem: the flag was set before the server CAS succeeded, and only existed on the initiating device — other devices had no way to discover or complete an interrupted rewrap.
 

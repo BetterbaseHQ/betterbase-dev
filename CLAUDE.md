@@ -12,7 +12,7 @@ Betterbase is the orchestration repo for the Betterbase ecosystem:
   - `betterbase-inference` (E2EE inference proxy, port 5381) — forwards to Tinfoil TEE
 - **TypeScript client packages** (checked out as sub-repo): `betterbase/` containing `/sdk/auth`, `/sdk/crypto`, `/sdk/sync`, `/sdk/inference`
 - **Document store** (checked out as sub-repo): `betterbase-db/` containing `/sdk/db`
-- **Example apps**: `examples/launchpad` (portal), `examples/tasks` (offline-first todos with sync), `examples/notes` (rich text notes with CRDT merging), `examples/passwords` (encrypted password vault), built on `examples/shared` (@less-examples/shared)
+- **Example apps**: `examples/launchpad` (portal), `examples/tasks` (offline-first todos with sync), `examples/notes` (rich text notes with CRDT merging), `examples/passwords` (encrypted password vault), built on `examples/shared` (@betterbase/examples-shared)
 - **Integration tests**: Go tests in `integration/`
 
 betterbase-accounts and betterbase-sync use PostgreSQL. betterbase-sync validates JWTs issued by accounts via JWKS. betterbase-inference is not yet integrated into docker-compose (run standalone).

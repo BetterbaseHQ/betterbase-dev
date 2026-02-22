@@ -1251,7 +1251,7 @@ When upgrading the sync service:
 ### Phase 0: Foundation (no federation, independently useful)
 
 - [ ] Add `/.well-known/betterbase` metadata endpoint (can be static JSON)
-- [ ] Add WebFinger endpoint to less-accounts
+- [ ] Add WebFinger endpoint to betterbase-accounts
 - [ ] Add `user@domain` display format to identity model
 - [x] Implement `betterbase-rpc-v1` WebSocket protocol with subscribe, push, pull, token refresh
 - [x] Unified cursor stream (records, membership, files in cursor order)

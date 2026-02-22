@@ -43,17 +43,17 @@ even under compulsion.** The key properties:
 ### What the server currently knows
 
 Assessed by tracing every database column and wire format field across
-less-accounts and less-sync. Updated February 2026 to reflect Phase 1+2
+betterbase-accounts and betterbase-sync. Updated February 2026 to reflect Phase 1+2
 privacy changes.
 
-**less-accounts:**
+**betterbase-accounts:**
 - Username, email, account ID
 - Which OAuth clients a user has authorized (oauth_grants)
 - App P-256 public key per grant (for DID computation)
 - Mailbox ID per grant (HKDF-derived, used for invitation routing)
 - Grant last-used timestamps
 
-**less-sync — stored permanently:**
+**betterbase-sync — stored permanently:**
 - Space IDs (deterministic from issuer + userID + clientID)
 - Record IDs (UUIDv4 — random, no timestamp)
 - `records.blob` — encrypted (opaque)
@@ -73,12 +73,12 @@ privacy changes.
 - ~~Invitation sender/recipient identity~~ — replaced with opaque mailbox IDs
 - ~~`user_id` in request logs~~ — removed from logging
 
-**less-sync — seen transiently per-request:**
+**betterbase-sync — seen transiently per-request:**
 - Full UCAN delegation chain (iss/aud did:keys at every level) — mitigated by space session tokens (validated once, then opaque token used)
 - JWT claims (sub, client_id, iss, scope, personal_space_id, mailbox_id)
 - HTTP metadata (IP, timing, request size)
 
-**less-sync — broadcast via WebSocket:**
+**betterbase-sync — broadcast via WebSocket:**
 - Space IDs, record IDs, sequence numbers (plaintext framing)
 - Encrypted blobs (opaque)
 - Invitation notifications routed by mailbox_id (with 1-5s random delay for timing mitigation)

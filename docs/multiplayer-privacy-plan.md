@@ -833,12 +833,12 @@ Signed membership entries + ephemeral rate limiting. Ensures membership log inte
 - [x] `getMembers()` derives member status: active (self-issued or accepted), pending, declined, revoked
 - [x] `getMembers()` skips entries with invalid signatures (logs warning)
 
-**Server permission change (`less-sync`):**
+**Server permission change (`betterbase-sync`):**
 - [x] `handleAppendMember()` authorization: `PermissionAdmin` → `PermissionRead`
 - [x] Any member with a valid UCAN can append (integrity via signatures + hash chain)
 - [x] Rate limited: 10 membership appends per hour per actor
 
-**Ephemeral rate limiting (`less-sync`):**
+**Ephemeral rate limiting (`betterbase-sync`):**
 - [x] Migration `008_ephemeral_rate_limits.sql`: general-purpose `rate_limit_actions` table
 - [x] Schema: `(action VARCHAR(32), actor_hash CHAR(64), created_at TIMESTAMPTZ)`
 - [x] `rate_limit_hash` column dropped from `invitations` table
@@ -849,7 +849,7 @@ Signed membership entries + ephemeral rate limiting. Ensures membership log inte
 
 **Tests:**
 - [x] 82 crypto tests, 427 sync tests pass
-- [x] All Go tests pass (`just check` in less-sync)
+- [x] All Go tests pass (`just check` in betterbase-sync)
 
 ### Phase 3+4 — COMPLETE ✓
 

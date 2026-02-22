@@ -45,7 +45,7 @@ The app knows which file IDs to evict because it knows its own record shape
 
 ## Changes Required
 
-### Server (`less-sync`)
+### Server (`betterbase-sync`)
 
 - [ ] **File upload endpoint**: require `recordId` param (header or path),
       store the file→record association in the database
