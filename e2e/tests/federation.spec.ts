@@ -2,7 +2,7 @@ import { test, expect, bridge, setupSharedSpace, removeMember, pollUntil } from 
 
 test.describe("Federation — Dual-Server Discovery", () => {
   test("Server A discovery includes federation metadata", async ({ page }) => {
-    const response = await page.request.get("http://localhost:25377/.well-known/less-platform");
+    const response = await page.request.get("http://localhost:25377/.well-known/betterbase");
     expect(response.ok()).toBe(true);
 
     const metadata = await response.json();
@@ -14,7 +14,7 @@ test.describe("Federation — Dual-Server Discovery", () => {
   });
 
   test("Server B discovery includes federation metadata", async ({ page }) => {
-    const response = await page.request.get("http://localhost:25387/.well-known/less-platform");
+    const response = await page.request.get("http://localhost:25387/.well-known/betterbase");
     expect(response.ok()).toBe(true);
 
     const metadata = await response.json();

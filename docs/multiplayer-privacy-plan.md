@@ -7,7 +7,7 @@
 
 ## Who This Is For
 
-Less Platform is designed for **consumer productivity applications** that handle private data:
+Betterbase is designed for **consumer productivity applications** that handle private data:
 
 - **Notes apps** (personal knowledge bases, journals)
 - **Todo/task managers** (project planning, GTD systems)
@@ -24,7 +24,7 @@ These apps typically use cloud sync for convenience across devices. Today, most 
 3. **Zero-friction onboarding** — no complicated setup
 4. **Real-time updates** — changes appear instantly everywhere
 
-**Less Platform's goal:** Provide the same convenience and developer experience, but with true end-to-end encryption and privacy by default. Developers should be able to build these apps as easily as they build against Firebase or Supabase, but users get strong metadata privacy — sealed-sender-equivalent for invitations, pseudonymous access for sync operations, and zero-knowledge blob storage.
+**Betterbase's goal:** Provide the same convenience and developer experience, but with true end-to-end encryption and privacy by default. Developers should be able to build these apps as easily as they build against Firebase or Supabase, but users get strong metadata privacy — sealed-sender-equivalent for invitations, pseudonymous access for sync operations, and zero-knowledge blob storage.
 
 ## Design Principles
 
@@ -104,7 +104,7 @@ If the foundation has privacy leaks (e.g., server learns who is in each space), 
 
 ## Executive Summary
 
-The Less Platform has strong foundational privacy properties (zero-knowledge blob storage, OPAQUE auth, no server-side encryption keys). However, the multiplayer features currently expose more metadata than necessary during normal operation.
+The Betterbase has strong foundational privacy properties (zero-knowledge blob storage, OPAQUE auth, no server-side encryption keys). However, the multiplayer features currently expose more metadata than necessary during normal operation.
 
 **Key Finding:** The sync server learns which users are collaborating in which spaces, even though it only needs to know "a valid member is accessing space X."
 
@@ -206,8 +206,8 @@ mailbox_id = hex(await crypto.subtle.deriveBits(
   {
     name: "HKDF",
     hash: "SHA-256",
-    salt: utf8("less-platform-mailbox-salt-v1"),  // Fixed salt for domain separation
-    info: utf8("less:mailbox:v1\0" + issuer + "\0" + user_id)
+    salt: utf8("betterbase-mailbox-salt-v1"),  // Fixed salt for domain separation
+    info: utf8("betterbase:mailbox:v1\0" + issuer + "\0" + user_id)
   },
   encryption_key,  // The scoped key from OPAQUE (32 bytes), NOT the P-256 private key
   256  // 32 bytes output
@@ -362,8 +362,8 @@ const mailbox_id = hex(await crypto.subtle.deriveBits(
   {
     name: "HKDF",
     hash: "SHA-256",
-    salt: utf8("less-platform-mailbox-salt-v1"),
-    info: utf8("less:mailbox:v1\0" + issuer + "\0" + user_id)  // null separators
+    salt: utf8("betterbase-mailbox-salt-v1"),
+    info: utf8("betterbase:mailbox:v1\0" + issuer + "\0" + user_id)  // null separators
   },
   encryption_key,  // 32 bytes from OPAQUE export key, NOT app_private_key
   256
@@ -626,7 +626,7 @@ The recipient decrypts and sees:
   "spaceKey": "...",
   "ucanChain": "...",
   "sender": {
-    "issuer": "https://accounts.less.so",
+    "issuer": "https://accounts.betterbase.dev",
     "userId": "...",
     "username": "alice"
   }
@@ -818,7 +818,7 @@ Signed membership entries + ephemeral rate limiting. Ensures membership log inte
 
 **Membership entry format (`@betterbase/sdk/sync`):**
 - [x] Entry types: `"d"` (delegation), `"a"` (accepted), `"x"` (declined), `"r"` (revoked)
-- [x] Canonical signing message: `less:membership:v1\0<type>\0<spaceId>\0<signerDID>\0<ucan>`
+- [x] Canonical signing message: `betterbase:membership:v1\0<type>\0<spaceId>\0<signerDID>\0<ucan>`
 - [x] `signature` and `signerPublicKey` are required fields (no legacy/unsigned support)
 - [x] `verifyMembershipEntry()` — validates signer DID against entry type role, verifies ECDSA signature
 - [x] Self-issued UCANs (iss == aud): also verifies UCAN JWT signature to prevent creator impersonation
@@ -1007,8 +1007,8 @@ mailbox_id = hex(await crypto.subtle.deriveBits(
   {
     name: "HKDF",
     hash: "SHA-256",
-    salt: utf8("less-platform-mailbox-salt-v1"),
-    info: utf8("less:mailbox:v1\0" + issuer + "\0" + user_id)  // null separators
+    salt: utf8("betterbase-mailbox-salt-v1"),
+    info: utf8("betterbase:mailbox:v1\0" + issuer + "\0" + user_id)  // null separators
   },
   encryption_key,  // 32 bytes from OPAQUE export key
   256
@@ -1210,7 +1210,7 @@ BBS+ is a pairing-based signature scheme that supports zero-knowledge selective 
 
 ### Alternatives Considered
 
-| Approach | Fits Less Platform? | Why / Why Not |
+| Approach | Fits Betterbase? | Why / Why Not |
 |----------|-------------------|---------------|
 | **KVAC** (Signal's approach) | No | Requires the verifier (server) to hold the secret key. Defeats our E2EE trust model. |
 | **Privacy Pass** (RFC 9576/9577) | Marginal | Single-use unlinkable tokens. No selective disclosure (can't encode permission levels). Essentially a fancier version of what session tokens already provide. |
@@ -1259,7 +1259,7 @@ Add a `key_id` field (SHA-256 of public key) to the `GET /users/{user}/keys/{cli
 **BBS+ Libraries:**
 - MATTR pairing-crypto (Rust/WASM): https://github.com/mattrglobal/pairing_crypto
 
-**Existing Less Platform Docs:**
+**Existing Betterbase Docs:**
 - `signal-level-privacy.md` — Original privacy analysis (now partially outdated)
 - `FEDERATION.md` — Federation design (will need update for mailbox IDs)
 - `ROADMAP.md` — Implementation milestones

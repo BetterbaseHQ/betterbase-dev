@@ -1,11 +1,11 @@
-# Less Platform Federation Specification
+# Betterbase Federation Specification
 
 **Status**: Draft v1
 **Date**: 2026-02-14
 
 ## 1. Overview
 
-Federation enables Less Platform servers to replicate shared spaces across trust boundaries. Users on different servers can collaborate on shared encrypted documents without either server seeing plaintext data.
+Federation enables Betterbase servers to replicate shared spaces across trust boundaries. Users on different servers can collaborate on shared encrypted documents without either server seeing plaintext data.
 
 ### Design principles
 
@@ -31,7 +31,7 @@ Federation enables Less Platform servers to replicate shared spaces across trust
 Users are identified as `user@domain`:
 
 ```
-alice@less.so
+alice@betterbase.dev
 bob@company.example.com
 ```
 
@@ -43,7 +43,7 @@ Under the hood, each user has a stable P-256 keypair **per app** (OAuth client),
 
 Resolving `user@domain` is a two-step process:
 
-1. **Discover the server**: Fetch `https://domain/.well-known/less-platform` to get all endpoint URLs (including the WebFinger endpoint)
+1. **Discover the server**: Fetch `https://domain/.well-known/betterbase` to get all endpoint URLs (including the WebFinger endpoint)
 2. **Resolve the user**: Fetch WebFinger at the discovered endpoint
 
 ```http
@@ -55,7 +55,7 @@ GET https://accounts.company.example.com/.well-known/webfinger?resource=acct:bob
   "subject": "acct:bob@company.example.com",
   "links": [
     {
-      "rel": "https://less.so/ns/sync",
+      "rel": "https://betterbase.dev/ns/sync",
       "href": "https://sync.company.example.com/api/v1"
     }
   ]
@@ -79,12 +79,12 @@ If a user migrates to a new server:
 
 ### Server metadata
 
-`/.well-known/less-platform` is the single discovery entry point for federation. It MUST be served from the identity domain (the domain used in `user@domain` identifiers). This is the only endpoint that must be on the identity domain — all other endpoints can live on any host, because the discovery document tells you where to find them.
+`/.well-known/betterbase` is the single discovery entry point for federation. It MUST be served from the identity domain (the domain used in `user@domain` identifiers). This is the only endpoint that must be on the identity domain — all other endpoints can live on any host, because the discovery document tells you where to find them.
 
 For self-hosters, this can be a static JSON file served by any web server or reverse proxy — it does not require the sync or accounts services to be on the identity domain.
 
 ```http
-GET https://example.com/.well-known/less-platform
+GET https://example.com/.well-known/betterbase
 Cache-Control: max-age=3600
 ```
 
@@ -96,7 +96,7 @@ Cache-Control: max-age=3600
   "federation_ws": "wss://sync.example.com/api/v1/federation/ws",
   "jwks_uri": "https://sync.example.com/.well-known/jwks.json",
   "webfinger": "https://accounts.example.com/.well-known/webfinger",
-  "protocols": ["less-rpc-v1"],
+  "protocols": ["betterbase-rpc-v1"],
   "pow_required": false
 }
 ```
@@ -154,7 +154,7 @@ federation:
     - domain: "company.example.com"
 ```
 
-In **allowlist mode** (default), only explicitly trusted servers can federate. In **open mode**, any server with a valid `/.well-known/less-platform` endpoint can initiate federation, subject to PoW admission control.
+In **allowlist mode** (default), only explicitly trusted servers can federate. In **open mode**, any server with a valid `/.well-known/betterbase` endpoint can initiate federation, subject to PoW admission control.
 
 ### Trust establishment
 
@@ -165,7 +165,7 @@ Two server operators establish trust out-of-band (email, config file, admin UI).
 The verification flow:
 
 1. Admin of server A adds `server-b.example.com` to trusted list
-2. Server A fetches `https://server-b.example.com/.well-known/less-platform` to validate
+2. Server A fetches `https://server-b.example.com/.well-known/betterbase` to validate
 3. Server A fetches the JWKS to cache server B's signing keys
 4. Server B does the same for server A
 5. Both servers register the same OAuth client IDs for federated apps
@@ -261,12 +261,12 @@ wss://<federation_ws from discovery document>
 (HTTP Signature on upgrade request)
 ```
 
-The s2s WebSocket URL is discovered from the `federation_ws` field in `/.well-known/less-platform`. Both endpoints accept the WebSocket upgrade and begin the frame protocol.
+The s2s WebSocket URL is discovered from the `federation_ws` field in `/.well-known/betterbase`. Both endpoints accept the WebSocket upgrade and begin the frame protocol.
 
 **Protocol version negotiation**: The `Sec-WebSocket-Protocol` header negotiates the wire protocol version:
 
 ```http
-Sec-WebSocket-Protocol: less-rpc-v1
+Sec-WebSocket-Protocol: betterbase-rpc-v1
 ```
 
 The server responds with the selected protocol. If the server doesn't support the requested version, it rejects the upgrade with `400 Bad Request`. This allows future protocol versions (`less-cbor-v2`, etc.) without breaking existing clients.
@@ -961,7 +961,7 @@ After replication stops, the federated server stops forwarding events and pushes
 
 ### PoW admission control
 
-Proof-of-work as an admission valve for untrusted peers. This aligns with Less Platform's existing CAP (proof-of-work CAPTCHA) infrastructure.
+Proof-of-work as an admission valve for untrusted peers. This aligns with Betterbase's existing CAP (proof-of-work CAPTCHA) infrastructure.
 
 | Operation | Trusted peer | Known/open peer | Unknown peer |
 |-----------|-------------|-----------------|-------------|
@@ -1022,7 +1022,7 @@ Servers SHOULD implement:
 
 ## 10. Client protocol (implemented)
 
-The c2s protocol uses the same WebSocket RPC protocol described in Section 6. Clients connect to `WS /api/v1/ws` with JWT auth and use the `less-rpc-v1` subprotocol. c2s shares the core sync methods (subscribe, push, pull, token refresh) with s2s and adds resource management methods (invitations, spaces, membership, epochs, DEKs) that are not relevant to federation.
+The c2s protocol uses the same WebSocket RPC protocol described in Section 6. Clients connect to `WS /api/v1/ws` with JWT auth and use the `betterbase-rpc-v1` subprotocol. c2s shares the core sync methods (subscribe, push, pull, token refresh) with s2s and adds resource management methods (invitations, spaces, membership, epochs, DEKs) that are not relevant to federation.
 
 The only HTTP endpoints are file upload/download/head (`PUT/GET/HEAD /api/v1/spaces/{spaceID}/files/{id}`), which use streaming binary and don't benefit from RPC framing.
 
@@ -1218,7 +1218,7 @@ Federation events SHOULD be logged with consistent fields: `peer` (domain), `spa
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/.well-known/less-platform` | Server metadata (MUST be on identity domain) |
+| GET | `/.well-known/betterbase` | Server metadata (MUST be on identity domain) |
 | GET | `/.well-known/jwks.json` (URL from metadata `jwks_uri`) | JWKS for JWT verification and federation keys |
 | GET | WebFinger (URL from metadata `webfinger`) | User discovery (RFC 7033) |
 
@@ -1226,13 +1226,13 @@ Federation events SHOULD be logged with consistent fields: `peer` (domain), `spa
 
 ## 16. Protocol versioning and upgrades
 
-The `Sec-WebSocket-Protocol` header negotiates the wire protocol version (Section 6.1). The `.well-known/less-platform` `protocols` array advertises all supported versions.
+The `Sec-WebSocket-Protocol` header negotiates the wire protocol version (Section 6.1). The `.well-known/betterbase` `protocols` array advertises all supported versions.
 
 ### Version lifecycle
 
 - **Support window**: New protocol versions MUST be supported alongside the previous version for at least **6 months**.
 - **Negotiation**: The connecting side requests the highest mutually-supported version. The `protocols` array in the server metadata document determines what the peer supports.
-- **Deprecation**: Deprecated versions are announced via a `deprecated_protocols` field in `.well-known/less-platform`. Servers MUST NOT remove support for a protocol version while any trusted peer still lists it as their only supported version.
+- **Deprecation**: Deprecated versions are announced via a `deprecated_protocols` field in `.well-known/betterbase`. Servers MUST NOT remove support for a protocol version while any trusted peer still lists it as their only supported version.
 - **Minimum version**: Servers MAY set a minimum supported version. Connections requesting only unsupported versions are rejected with `400 Bad Request` on the WebSocket upgrade.
 
 ### Rolling upgrades
@@ -1241,7 +1241,7 @@ When upgrading the sync service:
 
 1. The server sends close code `1001` (Going Away) to all WebSocket connections before shutting down
 2. Peers reconnect immediately (no backoff on `1001`)
-3. The new version advertises updated `protocols` in `.well-known/less-platform`
+3. The new version advertises updated `protocols` in `.well-known/betterbase`
 4. Federation resumes on the negotiated protocol version
 
 ---
@@ -1250,10 +1250,10 @@ When upgrading the sync service:
 
 ### Phase 0: Foundation (no federation, independently useful)
 
-- [ ] Add `/.well-known/less-platform` metadata endpoint (can be static JSON)
+- [ ] Add `/.well-known/betterbase` metadata endpoint (can be static JSON)
 - [ ] Add WebFinger endpoint to less-accounts
 - [ ] Add `user@domain` display format to identity model
-- [x] Implement `less-rpc-v1` WebSocket protocol with subscribe, push, pull, token refresh
+- [x] Implement `betterbase-rpc-v1` WebSocket protocol with subscribe, push, pull, token refresh
 - [x] Unified cursor stream (records, membership, files in cursor order)
 - [x] Real-time notifications (sync, membership, file, revoked)
 - [ ] Extend invitation model to store `user@domain` recipients

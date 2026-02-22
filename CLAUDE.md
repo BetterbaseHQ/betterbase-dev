@@ -262,9 +262,9 @@ cd betterbase/packages/sync && pnpm test
 The following are frozen as of v1 and must not change without a versioned migration path:
 
 - **API route paths**: All `/v1/` routes across betterbase-accounts, betterbase-sync (`/api/v1/`), and betterbase-inference (`/v1/`)
-- **WebSocket RPC protocol**: `less-rpc-v1` subprotocol, frame types, CBOR-seq for auxiliary HTTP endpoints
+- **WebSocket RPC protocol**: `betterbase-rpc-v1` subprotocol, frame types, CBOR-seq for auxiliary HTTP endpoints
 - **Encryption envelope format v4**: `[0x04][IV:12][ciphertext+tag]` (AES-256-GCM)
 - **Patch log format v1**: `[0x01][length-prefixed entries...]` (empty = zero bytes)
-- **Wire protocol version strings**: `less:encrypt:v1`, `less:epoch-salt:v1`, `less:epoch:v1:`, `less:epoch-root:v1`, `less:membership:v1\0`, `less:mailbox:v1\0`, `betterbase-dev-mailbox-salt-v1`
+- **Wire protocol version strings**: `betterbase:encrypt:v1`, `betterbase:epoch-salt:v1`, `betterbase:epoch:v1:`, `betterbase:epoch-root:v1`, `betterbase:membership:v1\0`, `betterbase:mailbox:v1\0`, `betterbase-mailbox-salt-v1`
 - **Session token binary format**: Already versioned with leading byte
 - **`X-Protocol-Version: 1`** response header on all services

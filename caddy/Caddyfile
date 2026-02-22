@@ -1,4 +1,4 @@
-# Less Platform - Caddy Configuration with Rate Limiting
+# Betterbase - Caddy Configuration with Rate Limiting
 #
 # This configuration provides rate limiting for abuse protection.
 # See betterbase-accounts/docs/RATE-LIMITING.md and betterbase-sync/docs/RATE-LIMITING.md

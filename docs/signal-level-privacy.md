@@ -1,4 +1,4 @@
-# Signal-Level Privacy for Less Platform
+# Signal-Level Privacy for Betterbase
 
 This document defines what Signal-level privacy means for an encrypted sync
 platform and proposes concrete changes to achieve it. It is organized into
@@ -21,7 +21,7 @@ even under compulsion.** The key properties:
 | **Private contact discovery** | Server cannot learn who you look up (SGX-based PIR) |
 | **Encrypted profiles** | Names, avatars stored encrypted; server sees nothing |
 
-## Where Less Platform Stands Today
+## Where Betterbase Stands Today
 
 ### What we do well
 
@@ -364,7 +364,7 @@ through epochs together, requiring a group key agreement protocol.
 
 ## Tier 4: Aspirational (research-grade)
 
-Properties that would make Less Platform's privacy exceed Signal's in some
+Properties that would make Betterbase's privacy exceed Signal's in some
 dimensions, but require novel protocol design.
 
 ### 4.1 Private information retrieval (PIR) for pulls
@@ -426,7 +426,7 @@ For a team that wants to move toward Signal-level privacy incrementally:
 Signal is a messaging app. Less is a sync platform. The threat models
 differ in important ways:
 
-| Dimension | Signal | Less Platform |
+| Dimension | Signal | Betterbase |
 |---|---|---|
 | Data lifetime | Messages are ephemeral (disappearing messages) | Sync data is persistent (user expects it to survive) |
 | Access pattern | Point-to-point or small groups | Continuous sync with push/pull/WS |
@@ -439,7 +439,7 @@ delete keys if the user might need to re-sync old data on a new device).
 The continuous access pattern makes traffic analysis harder to prevent than
 for discrete messages.
 
-**The honest assessment:** Tiers 1-2 bring Less Platform to a level of
+**The honest assessment:** Tiers 1-2 bring Betterbase to a level of
 metadata privacy that exceeds most commercial sync platforms (iCloud,
 Dropbox, Notion, etc.) and approaches Signal for the stored-data threat
 model. Tier 3 (BBS+ credentials, forward secrecy) would match Signal's

@@ -7,7 +7,7 @@
 
 ## Purpose
 
-This document audits the Less Platform's encryption system for correctness, standard compliance, and completeness. It covers every cryptographic primitive, every key derivation path, every wire format, and every key lifecycle — identifying what's solid, what needs attention, and what's missing.
+This document audits the Betterbase's encryption system for correctness, standard compliance, and completeness. It covers every cryptographic primitive, every key derivation path, every wire format, and every key lifecycle — identifying what's solid, what needs attention, and what's missing.
 
 The [Multiplayer Privacy Plan](./multiplayer-privacy-plan.md) focused on metadata minimization. The [System Privacy Audit](./system-privacy-audit.md) covered logging, timestamps, and operational privacy. This audit focuses exclusively on **cryptographic correctness**: are we using the right algorithms, the right parameters, the right key management patterns?
 
@@ -122,8 +122,8 @@ CBOR({c: collection, v: schema_version, crdt: bytes})
 epoch_key_0 = OPAQUE_export_key (root) — or space key for shared spaces
 epoch_key_{N+1} = HKDF-SHA256(
   ikm: epoch_key_N,
-  salt: "less:epoch-salt:v1",
-  info: "less:epoch:v1:{spaceId}:{N+1}"
+  salt: "betterbase:epoch-salt:v1",
+  info: "betterbase:epoch:v1:{spaceId}:{N+1}"
 )
 ```
 
@@ -134,8 +134,8 @@ epoch_key_{N+1} = HKDF-SHA256(
 ```
 mailbox_id = hex(HKDF-SHA256(
   ikm: encryption_key,          // 32 bytes from OPAQUE
-  salt: "less-platform-mailbox-salt-v1",
-  info: "less:mailbox:v1\0{issuer}\0{userId}"
+  salt: "betterbase-mailbox-salt-v1",
+  info: "betterbase:mailbox:v1\0{issuer}\0{userId}"
 ))
 ```
 
@@ -145,7 +145,7 @@ mailbox_id = hex(HKDF-SHA256(
 
 ```
 personal_space_id = UUID5(
-  namespace: UUID5(DNS, "less.so"),
+  namespace: UUID5(DNS, "betterbase.dev"),
   name: "{issuer}\0{userID}\0{clientID}"
 )
 ```
@@ -164,8 +164,8 @@ did:key:z{base58btc(varint(0x1200) || compress_P256(pubkey))}
 
 ```
 opaque_export_key (32 bytes from OPAQUE)
-  → encryption_key = HKDF-SHA256(ikm: opaque_key, salt: "less:key-separation:v1", info: "less:encrypt:v1")
-  → epoch_root_key = HKDF-SHA256(ikm: opaque_key, salt: "less:key-separation:v1", info: "less:epoch-root:v1")
+  → encryption_key = HKDF-SHA256(ikm: opaque_key, salt: "betterbase:key-separation:v1", info: "betterbase:encrypt:v1")
+  → epoch_root_key = HKDF-SHA256(ikm: opaque_key, salt: "betterbase:key-separation:v1", info: "betterbase:epoch-root:v1")
 ```
 
 **Assessment:** Correct. Separate keys derived for AES-GCM (record encryption in single-user mode) and AES-KW (epoch key wrapping). Eliminates multi-algorithm key reuse (ENC-6 resolved).
@@ -190,7 +190,7 @@ ECDH-ES+A256KW / A256GCM
 
 **Was:** Empty salt (`new Uint8Array(0)`) in HKDF derivation.
 
-**Fix:** Changed to fixed domain-separation salt: `utf8("less:epoch-salt:v1")`. This is a breaking change for epoch key derivation (acceptable pre-production). All epoch tests updated with new test vectors.
+**Fix:** Changed to fixed domain-separation salt: `utf8("betterbase:epoch-salt:v1")`. This is a breaking change for epoch key derivation (acceptable pre-production). All epoch tests updated with new test vectors.
 
 ---
 
@@ -284,8 +284,8 @@ The encryption key (`AES-GCM`, non-extractable) and epoch key (`AES-KW`, non-ext
 
 **Fix:** `AuthSession.create()` now derives two separate keys via HKDF:
 ```typescript
-const encKey = await hkdfDerive(authResult.encryptionKey, "less:encrypt:v1");
-const epochKey = await hkdfDerive(authResult.encryptionKey, "less:epoch-root:v1");
+const encKey = await hkdfDerive(authResult.encryptionKey, "betterbase:encrypt:v1");
+const epochKey = await hkdfDerive(authResult.encryptionKey, "betterbase:epoch-root:v1");
 ```
 
 Both derived keys and the original IKM are zeroed after import. The `hkdfDerive()` helper validates 32-byte IKM input. This is a breaking change for personal space data (acceptable pre-production).
@@ -296,7 +296,7 @@ Both derived keys and the original IKM are zeroed after import. The `hkdfDerive(
 
 **Assessment:** AES-GCM is not committing — it's possible to construct a ciphertext that decrypts successfully under two different keys to two different plaintexts. This is relevant in protocols where a party might claim "I encrypted X" and later reveal a different key showing "actually it was Y."
 
-**Relevance to Less Platform:** Low. The threat model is honest-but-curious server, not malicious participants trying to equivocate. The server never decrypts, so it can't exploit non-commitment. Between collaborators, the membership log with ECDSA signatures provides attribution.
+**Relevance to Betterbase:** Low. The threat model is honest-but-curious server, not malicious participants trying to equivocate. The server never decrypts, so it can't exploit non-commitment. Between collaborators, the membership log with ECDSA signatures provides attribution.
 
 **If needed later:** Add a commitment tag: `HMAC(key, ciphertext)` appended to each blob. This is ~32 bytes overhead per record.
 
@@ -402,7 +402,7 @@ The epoch is not included in AAD. This means a ciphertext encrypted under epoch 
 
 *Added by expert review.*
 
-**Assessment:** Signal has key transparency (safety numbers, key fingerprints). Matrix has cross-signing and device verification. Less Platform has neither — the UCAN chain provides authorization (who can access what), but there's no mechanism for users to verify they're encrypting to the right person.
+**Assessment:** Signal has key transparency (safety numbers, key fingerprints). Matrix has cross-signing and device verification. Betterbase has neither — the UCAN chain provides authorization (who can access what), but there's no mechanism for users to verify they're encrypting to the right person.
 
 In a shared space, when Alice invites Bob, she looks up Bob's public key from the accounts server. If the accounts server is compromised, it could substitute a different public key, enabling a MITM attack on the invitation JWE.
 
@@ -524,7 +524,7 @@ On pull (any space):
 
 | ID | Issue | Resolution |
 |----|-------|------------|
-| **ENC-1** | Empty HKDF salt in epoch derivation | Fixed. Domain-separation salt `"less:epoch-salt:v1"`. |
+| **ENC-1** | Empty HKDF salt in epoch derivation | Fixed. Domain-separation salt `"betterbase:epoch-salt:v1"`. |
 | **ENC-2** | Automatic epoch rotation not wired up | Fixed. Runs for all spaces on pull, admin-only, capped at 3/pull. |
 | **ENC-3** | File DEKs not re-wrapped on key rotation | Fixed. `rewrapAllDEKs()` re-wraps both record and file DEKs. |
 | **ENC-6** | Same key for AES-GCM and AES-KW in personal spaces | Fixed. Separate keys derived via HKDF from OPAQUE export key. |
@@ -548,7 +548,7 @@ On pull (any space):
 
 ## Comparison to Reference Systems
 
-| Property | Less Platform | Signal | Matrix (Megolm) | Apple iCloud |
+| Property | Betterbase | Signal | Matrix (Megolm) | Apple iCloud |
 |----------|--------------|--------|-----------------|-------------|
 | **Record encryption** | AES-256-GCM + per-record DEK | AES-256-CBC + HMAC per message | AES-256-CTR + HMAC-SHA256 per message | AES-256-GCM (selected services) |
 | **Key wrapping** | AES-KW (256-bit KEK) | N/A (per-message keys) | AES-256 (session key) | AES-KW (service key) |
@@ -559,11 +559,11 @@ On pull (any space):
 | **Password auth** | OPAQUE (ristretto255) | PAKE (Signal PIN) | N/A (no passwords) | SRP-6a |
 | **Key transparency** | None (TOFU planned) | Safety numbers | Cross-signing | N/A |
 
-**Assessment:** Less Platform's encryption is on par with Signal and Matrix for data confidentiality. Both Less Platform and Signal achieve the same nonce-safety goal (unique key per encryption operation) via different mechanisms — per-record DEKs vs. per-message key derivation. The engineering tradeoff differs: persistent DEKs require wrapping/management; ephemeral keys are derived and discarded.
+**Assessment:** Betterbase's encryption is on par with Signal and Matrix for data confidentiality. Both Betterbase and Signal achieve the same nonce-safety goal (unique key per encryption operation) via different mechanisms — per-record DEKs vs. per-message key derivation. The engineering tradeoff differs: persistent DEKs require wrapping/management; ephemeral keys are derived and discarded.
 
-The main gap vs. Signal is **forward secrecy granularity**: Signal achieves per-message forward secrecy via the Double Ratchet, while Less Platform achieves per-epoch (30-day) forward secrecy. This is a deliberate tradeoff — the sync protocol requires any member to decrypt any record at any time (not just new messages in order), which is incompatible with per-message ratcheting. The 30-day epoch is a reasonable compromise for the productivity app use case. Automatic 30-day rotation is now wired up for all spaces (ENC-2 resolved).
+The main gap vs. Signal is **forward secrecy granularity**: Signal achieves per-message forward secrecy via the Double Ratchet, while Betterbase achieves per-epoch (30-day) forward secrecy. This is a deliberate tradeoff — the sync protocol requires any member to decrypt any record at any time (not just new messages in order), which is incompatible with per-message ratcheting. The 30-day epoch is a reasonable compromise for the productivity app use case. Automatic 30-day rotation is now wired up for all spaces (ENC-2 resolved).
 
-The remaining gap is **key transparency**: Signal has safety numbers for verifying contact identity, Matrix has cross-signing for device verification. Less Platform has neither — the UCAN chain provides authorization but not identity verification. TOFU key pinning (already planned) addresses the most common attack (key substitution by compromised accounts server). A full key transparency log would provide stronger guarantees but is not essential for the target use cases (productivity apps, not whistleblowing).
+The remaining gap is **key transparency**: Signal has safety numbers for verifying contact identity, Matrix has cross-signing for device verification. Betterbase has neither — the UCAN chain provides authorization but not identity verification. TOFU key pinning (already planned) addresses the most common attack (key substitution by compromised accounts server). A full key transparency log would provide stronger guarantees but is not essential for the target use cases (productivity apps, not whistleblowing).
 
 ---
 

@@ -2,7 +2,7 @@ import { test, expect, bridge } from "./fixtures";
 
 test.describe("Discovery", () => {
   test("well-known endpoint returns valid server metadata", async ({ page }) => {
-    const response = await page.request.get("http://localhost:25377/.well-known/less-platform");
+    const response = await page.request.get("http://localhost:25377/.well-known/betterbase");
     expect(response.ok()).toBe(true);
 
     const metadata = await response.json();
@@ -11,7 +11,7 @@ test.describe("Discovery", () => {
     expect(metadata.sync_endpoint).toBeTruthy();
     expect(metadata.jwks_uri).toBeTruthy();
     expect(metadata.webfinger).toBeTruthy();
-    expect(metadata.protocols).toContain("less-rpc-v1");
+    expect(metadata.protocols).toContain("betterbase-rpc-v1");
 
     // accounts_endpoint should point to a reachable accounts server
     expect(metadata.accounts_endpoint).toMatch(/^https?:\/\//);
@@ -55,12 +55,12 @@ test.describe("Discovery", () => {
   });
 
   test("cache-control header is set on discovery endpoint", async ({ page }) => {
-    const response = await page.request.get("http://localhost:25377/.well-known/less-platform");
+    const response = await page.request.get("http://localhost:25377/.well-known/betterbase");
     expect(response.headers()["cache-control"]).toContain("public, max-age=3600");
   });
 
   test("CORS headers allow cross-origin discovery", async ({ page }) => {
-    const response = await page.request.get("http://localhost:25377/.well-known/less-platform");
+    const response = await page.request.get("http://localhost:25377/.well-known/betterbase");
     expect(response.headers()["access-control-allow-origin"]).toBe("*");
   });
 });

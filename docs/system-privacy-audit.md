@@ -7,11 +7,11 @@
 
 ## Purpose
 
-This document audits the entire Less Platform for data minimization, metadata leakage, and privacy-preserving design. It covers every service, every database table, every log line, and every network boundary — identifying what the ideal state looks like and what changes are needed to get there.
+This document audits the entire Betterbase for data minimization, metadata leakage, and privacy-preserving design. It covers every service, every database table, every log line, and every network boundary — identifying what the ideal state looks like and what changes are needed to get there.
 
 The [Multiplayer Privacy Plan](./multiplayer-privacy-plan.md) focused on shared spaces and invitations. This audit covers the full system: accounts, sync, inference, client packages, infrastructure, and local storage.
 
-> **Pre-production system.** Less Platform is greenfield — there are no deployed users, no migration compatibility constraints, and no backwards-compatibility requirements. Every change in this document can be made cleanly: drop columns, change API signatures, alter token lifetimes. We should take full advantage of this to ship a pristine baseline. There is no reason to carry forward any debt or half-measures — get it right before the first user touches it.
+> **Pre-production system.** Betterbase is greenfield — there are no deployed users, no migration compatibility constraints, and no backwards-compatibility requirements. Every change in this document can be made cleanly: drop columns, change API signatures, alter token lifetimes. We should take full advantage of this to ship a pristine baseline. There is no reason to carry forward any debt or half-measures — get it right before the first user touches it.
 
 ---
 
@@ -379,7 +379,7 @@ Access tokens and refresh tokens in `localStorage` can be read by any JavaScript
 
 **Mitigations:** Short access token lifetime (see ACC-7: reduce from 1 hour to 5-15 minutes), CSP headers (INFRA-5), CORS scoping (INFRA-4). Long-term: consider DPoP (RFC 9449) to bind tokens to client key pairs.
 
-**Priority:** Medium. Standard SPA tradeoff, not specific to Less Platform.
+**Priority:** Medium. Standard SPA tradeoff, not specific to Betterbase.
 
 ---
 
@@ -749,7 +749,7 @@ A network observer between client and Caddy (distinct from the server operator �
 
 | Platform | E2EE Data | E2EE Inference | Metadata Privacy | No Timestamps | No Writer Column | Sealed Invitations |
 |----------|-----------|---------------|------------------|---------------|-----------------|-------------------|
-| **Less Platform** | Yes | Yes | High | Yes | Yes | Yes |
+| **Betterbase** | Yes | Yes | High | Yes | Yes | Yes |
 | iCloud | Partial | No | Low | No | No | No |
 | Notion | No | No | None | No | No | No |
 | Google Drive | No | No | None | No | No | No |
@@ -761,7 +761,7 @@ A network observer between client and Caddy (distinct from the server operator �
 
 ## Conclusion
 
-The Less Platform has **best-in-class privacy** for a consumer sync platform. The multiplayer privacy work (Phases 1-5) addressed the largest metadata leaks. What remains is:
+The Betterbase has **best-in-class privacy** for a consumer sync platform. The multiplayer privacy work (Phases 1-5) addressed the largest metadata leaks. What remains is:
 
 1. **Consistency work** — bringing accounts and inference logging/rate-limiting up to the standard the sync server already meets
 2. **Token hardening** — shorter access token lifetimes to reduce XSS exposure window
@@ -772,6 +772,6 @@ The Less Platform has **best-in-class privacy** for a consumer sync platform. Th
 No critical privacy vulnerabilities were found. The remaining items are hardening measures that reduce the attack surface of an already strong system.
 
 **Important caveats to communicate honestly:**
-- "Metadata Privacy: High" (not Signal-level) — Signal uses SGX/TEE for contact discovery, sealed sender for all messages, and anonymous credentials for groups. Less Platform achieves sealed-sender for invitations and pseudonymous sync, which is strong but distinct.
+- "Metadata Privacy: High" (not Signal-level) — Signal uses SGX/TEE for contact discovery, sealed sender for all messages, and anonymous credentials for groups. Betterbase achieves sealed-sender for invitations and pseudonymous sync, which is strong but distinct.
 - Database separation is policy-enforced, not cryptographic — a `mailbox_id` JOIN across both DBs fully deanonymizes the social graph.
 - Inference E2EE depends on proxy binary integrity — a compromised proxy can exfiltrate the Tinfoil API key.
