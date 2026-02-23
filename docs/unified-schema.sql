@@ -1,4 +1,4 @@
--- Unified cursor schema for less-sync.
+-- Unified cursor schema for betterbase-sync.
 --
 -- This replaces all migrations (001-009) with a single greenfield schema.
 -- Key change: all space data shares a single monotonic counter (`cursor`)

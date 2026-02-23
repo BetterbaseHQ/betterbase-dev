@@ -12,11 +12,10 @@ default:
 pull:
     git pull
     cd ./betterbase-accounts && git pull
-    cd ./betterbase-db && git pull
     cd ./betterbase-inference && git pull
     cd ./betterbase && git pull
     cd ./betterbase-sync && git pull
-    cd ./betterbase-db && git pull
+    cd ./betterbase-examples && git pull
 
 # Set up everything for first run (clone repos, generate keys, create .env)
 setup:
@@ -107,9 +106,6 @@ check: fmt lint test
 check-all:
     @echo "=== Checking betterbase-accounts ==="
     cd ./betterbase-accounts && just check
-    @echo ""
-    @echo "=== Checking betterbase-db ==="
-    cd ./betterbase-db && just check
     @echo ""
     @echo "=== Checking betterbase-sync ==="
     cd ./betterbase-sync && just check
@@ -351,9 +347,6 @@ status:
     @echo "=== betterbase-accounts ==="
     @cd ./betterbase-accounts && git status -s || true
     @echo ""
-    @echo "=== betterbase-db ==="
-    @cd ./betterbase-db && git status -s || true
-    @echo ""
     @echo "=== betterbase-inference ==="
     @cd ./betterbase-inference && git status -s || true
     @echo ""
@@ -363,8 +356,8 @@ status:
     @echo "=== betterbase-sync ==="
     @cd ./betterbase-sync && git status -s || true
     @echo ""
-    @echo "=== betterbase-db ==="
-    @cd ./betterbase-db && git status -s || true
+    @echo "=== betterbase-examples ==="
+    @cd ./betterbase-examples && git status -s || true
 
 # Show git diff for all repos
 git-diff:
@@ -373,9 +366,6 @@ git-diff:
     @echo ""
     @echo "=== betterbase-accounts ==="
     @cd ./betterbase-accounts && git diff --stat
-    @echo ""
-    @echo "=== betterbase-db ==="
-    @cd ./betterbase-db && git diff --stat
     @echo ""
     @echo "=== betterbase-inference ==="
     @cd ./betterbase-inference && git diff --stat
@@ -386,28 +376,26 @@ git-diff:
     @echo "=== betterbase-sync ==="
     @cd ./betterbase-sync && git diff --stat
     @echo ""
-    @echo "=== betterbase-db ==="
-    @cd ./betterbase-db && git diff --stat
+    @echo "=== betterbase-examples ==="
+    @cd ./betterbase-examples && git diff --stat
 
 # Show current branch for all repos
 git-branch:
     @echo "betterbase: $(git branch --show-current)"
     @echo "betterbase-accounts: $(cd ./betterbase-accounts && git branch --show-current)"
-    @echo "betterbase-db: $(cd ./betterbase-db && git branch --show-current)"
     @echo "betterbase-inference: $(cd ./betterbase-inference && git branch --show-current)"
-    @echo "betterbase-js: $(cd ./betterbase && git branch --show-current)"
+    @echo "betterbase: $(cd ./betterbase && git branch --show-current)"
     @echo "betterbase-sync: $(cd ./betterbase-sync && git branch --show-current)"
-    @echo "betterbase-db-rs: $(cd ./betterbase-db && git branch --show-current)"
+    @echo "betterbase-examples: $(cd ./betterbase-examples && git branch --show-current)"
 
 # Fetch latest from origin for all repos (without merging)
 git-fetch:
     git fetch
     cd ./betterbase-accounts && git fetch
-    cd ./betterbase-db && git fetch
     cd ./betterbase-inference && git fetch
     cd ./betterbase && git fetch
     cd ./betterbase-sync && git fetch
-    cd ./betterbase-db && git fetch
+    cd ./betterbase-examples && git fetch
 
 # Push all repos to origin
 git-push:
@@ -416,9 +404,6 @@ git-push:
     @echo ""
     @echo "=== betterbase-accounts ==="
     cd ./betterbase-accounts && git push
-    @echo ""
-    @echo "=== betterbase-db ==="
-    cd ./betterbase-db && git push
     @echo ""
     @echo "=== betterbase-inference ==="
     cd ./betterbase-inference && git push
@@ -429,8 +414,8 @@ git-push:
     @echo "=== betterbase-sync ==="
     cd ./betterbase-sync && git push
     @echo ""
-    @echo "=== betterbase-db ==="
-    cd ./betterbase-db && git push
+    @echo "=== betterbase-examples ==="
+    cd ./betterbase-examples && git push
 
 # =============================================================================
 # Docker Operations

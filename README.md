@@ -1,270 +1,214 @@
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 # Betterbase
 
-An open platform for building local-first apps with end-to-end encryption. Your data lives on your device, syncs across clients via CRDTs, and the server never sees plaintext — not your documents, not your passwords, not your prompts.
+An open platform for building local-first applications with end-to-end encryption. Your users' data stays on their devices, syncs conflict-free via CRDTs, and the server never sees plaintext.
 
-Less gives you a typed document database, encrypted sync, zero-knowledge auth, and private AI inference. This repo orchestrates all the pieces for development and deployment.
+We believe your users' data should be private by default.
+
+**Build things like:** [encrypted todos](betterbase-examples/tasks), [collaborative notes](betterbase-examples/notes), [password vaults](betterbase-examples/passwords), [photo sharing](betterbase-examples/photos), [real-time chat](betterbase-examples/chat) -- all offline-first, all end-to-end encrypted.
+
+> Betterbase is in active development. APIs may change before 1.0.
+
+## What It Looks Like
+
+```tsx
+import { useQuery, useRecord, useAuth } from "@betterbase/sdk";
+
+function Tasks() {
+  const tasks = useQuery("tasks", { where: { done: false } });
+  const [task, update] = useRecord("tasks", selectedId);
+
+  return tasks.map((t) => (
+    <div key={t.id} onClick={() => update({ done: true })}>{t.title}</div>
+  ));
+}
+```
+
+Data is stored plaintext in the local database -- fully queryable and indexable. Encryption happens only when pushing to or pulling from the server.
+
+## Quick Start
+
+### Prerequisites
+
+- [Git](https://git-scm.com/), [Rust](https://rustup.rs/), [Docker](https://www.docker.com/), [just](https://github.com/casey/just), [jq](https://jqlang.github.io/jq/)
+
+### Setup
+
+```bash
+git clone https://github.com/BetterbaseHQ/betterbase-dev.git
+cd betterbase-dev
+
+just setup    # Clone sub-repos, generate keys, create .env
+just dev      # Start all services with hot reload
+```
+
+<details>
+<summary>What <code>just setup</code> does</summary>
+
+- Clones `betterbase-accounts`, `betterbase-sync`, `betterbase-inference`, `betterbase`, and `betterbase-examples`
+- Generates OPAQUE server keys for password authentication
+- Provisions CAP proof-of-work CAPTCHA credentials
+- Creates database passwords and HMAC keys
+- Writes a complete `.env` file
+
+The dev environment auto-configures OAuth clients for all example apps on first run.
+</details>
+
+### Open Your Browser
+
+Once `just dev` reports all services healthy:
+
+- **Auth UI**: [http://localhost:5378](http://localhost:5378) -- register an account and explore the login flow
+- **Tasks example**: `cd betterbase-examples/tasks && pnpm dev` then open [http://localhost:5381](http://localhost:5381)
+
+### Verify
+
+```bash
+just health   # Check service health endpoints
+```
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Accounts | 5377 | Auth server (OPAQUE + OAuth 2.0) |
+| Accounts Web UI | 5378 | Login/registration UI (dev only) |
+| Sync | 5379 | Encrypted blob sync (WebSocket + REST) |
+| Inference | 5381 | E2EE inference proxy (run standalone) |
 
 ## Architecture
 
 ```
-┌───────────────────────────────────────────────────────────────┐
-│  TypeScript Client Libraries (betterbase, betterbase-db)   │
-│  /sdk/auth, crypto, sync, inference, db             │
-└──────┬────────────────────────────────┬───────────┬───────────┘
-       │                                │           │
-       │  OAuth + PKCE                  │ Sync      │ E2EE
-       │  + key delivery                │ (CBOR-seq)│ inference
-       ▼                                ▼           ▼
-┌─────────────┐     ┌─────────────┐  ┌──────────────┐
-│betterbase-accounts│────▶│  betterbase-sync  │  │betterbase-inference │
-│   :5377     │     │   :5379     │  │   :5381      │
-│ Auth/OAuth  │JWKS │  Sync API   │  │  E2EE Proxy  │
-└──────┬──────┘     └──────┬──────┘  └──────┬───────┘
-       │                   │                │
-       ▼                   ▼                ▼
-  accounts-db          sync-db         Tinfoil TEE
-  (PostgreSQL)        (PostgreSQL)
++-----------------------------------------------------------------+
+|                        Your App (React)                         |
+|  useQuery, useRecord, useSpaces, usePresence, useAuth           |
++-----------------------------------------------------------------+
+|                     @betterbase/sdk                             |
+|  /db          Local-first document store (SQLite WASM + OPFS)  |
+|  /sync        WebSocket sync, spaces, presence, file storage   |
+|  /auth        OAuth 2.0 + PKCE + scoped encryption keys        |
+|  /crypto      AES-256-GCM, epoch keys, UCANs (Rust/WASM)      |
+|  /discovery   Server metadata + WebFinger resolution            |
++------------------------+----------------------------------------+
+|  betterbase-accounts   |  betterbase-sync                      |
+|  OPAQUE auth server    |  Encrypted blob sync (WebSocket+CBOR) |
+|  OAuth 2.0 + JWE keys  |  File storage, spaces, invitations    |
+|  Rust (Axum) + React   |  Rust (Axum) + PostgreSQL             |
++------------------------+----------------------------------------+
+|  Caddy (reverse proxy + rate limiting)  |  CAP (PoW CAPTCHA)   |
+|  PostgreSQL (accounts)  |  PostgreSQL (sync)                   |
++-----------------------------------------------------------------+
 ```
 
-Local data stored plaintext in `/sdk/db` (IndexedDB/SQLite), encrypted only at the boundary when syncing to betterbase-sync.
+### Auth
 
-### Encrypt-at-Boundary Design
+User enters password (never leaves device) → [OPAQUE](https://www.ietf.org/archive/id/draft-irtf-cfrg-opaque-17.html) authenticates without the server seeing it → OAuth 2.0 + PKCE issues tokens → when `sync` scope is requested, extended PKCE delivers a 256-bit encryption key via JWE → key stored as a non-extractable `CryptoKey` in IndexedDB.
 
-1. **Local storage** — `/sdk/db` stores data plaintext (fully queryable, indexable)
-2. **Auth** — `/sdk/auth` obtains access token + 256-bit encryption key via OAuth 2.0 + PKCE with JWE key delivery
-3. **Push** — `/sdk/sync` collects dirty records → wraps in BlobEnvelope → encrypts with AES-256-GCM → sends to betterbase-sync
-4. **Pull** — betterbase-sync sends encrypted blobs → decrypt → unwrap → CRDT merge → persist locally
-5. **Real-time** — WebSocket notifications trigger sync when remote changes arrive
+### Sync
 
-The server (betterbase-sync) only sees encrypted blobs. The inference proxy (betterbase-inference) only sees encrypted prompts/completions when E2EE is enabled via EHBP.
+App writes plaintext to the local store (fully queryable). On push: dirty records are wrapped in BlobEnvelopes, encrypted with AES-256-GCM, and sent to the server. On pull: encrypted blobs are decrypted, unwrapped, and CRDT-merged with local state. WebSocket provides real-time push notifications. Multi-device sync is automatic and conflict-free via json-joy CRDTs.
 
-## Quick Start
+### Spaces
+
+**Personal space** for single-user encrypted storage. **Shared spaces** for multi-user collaboration with UCAN-based authorization. Invitations are end-to-end encrypted via mailbox IDs. Membership is tracked in an append-only, signed, tamper-evident log. Epoch keys provide forward secrecy via periodic rotation.
+
+## Repository Map
+
+This is an orchestration repo. Each component lives in its own Git repository, cloned as a subdirectory:
+
+```
+betterbase-dev/                        # You are here
+├── betterbase/                        # SDK: Rust/WASM crypto + TypeScript client
+│   ├── crates/                        #   Rust crates (crypto, auth, discovery, sync-core, db)
+│   └── js/                            #   @betterbase/sdk (auth, crypto, discovery, sync, db)
+├── betterbase-accounts/               # Rust (Axum): OPAQUE auth + OAuth 2.0 server
+├── betterbase-sync/                   # Rust (Axum): encrypted blob sync + WebSocket
+├── betterbase-inference/              # Rust (Axum): E2EE inference proxy (Tinfoil TEE)
+├── betterbase-examples/               # Example apps
+│   ├── launchpad/                     #   Portal (auth-only, no sync)
+│   ├── tasks/                         #   Offline-first todos with sync
+│   ├── notes/                         #   Rich text notes with CRDT merging
+│   ├── passwords/                     #   Encrypted password vault
+│   ├── photos/                        #   Photo sharing with encrypted file storage
+│   ├── board/                         #   Collaborative board
+│   ├── chat/                          #   Encrypted messaging
+│   └── shared/                        #   @betterbase/examples-shared
+├── e2e/                               # Playwright browser tests (isolated stack)
+├── docker-compose.yml                 # Production services
+├── docker-compose.dev.yml             # Dev overrides (hot reload, debug ports)
+├── docker-compose.e2e.yml             # E2E test stack (isolated ports)
+└── caddy/                             # Reverse proxy config + rate limiting
+```
+
+## Development
 
 ```bash
-git clone git@github.com:BetterbaseHQ/betterbase-dev.git
-cd betterbase-dev
-just setup    # clones repos, generates keys
-just dev      # starts all services with hot reload
+# Dev
+just dev              # Start dev environment (hot reload, foreground)
+just dev-bg           # Same, but detached
+just dev-down         # Stop dev services and remove volumes
+just dev-logs         # Tail all logs (or: just dev-logs accounts)
+just dev-rebuild      # Rebuild containers after Dockerfile changes
+just health           # Check service health
+
+# Testing
+just e2e              # E2E browser tests: clean, setup, run (isolated stack)
+just e2e-test         # Run tests only (after e2e-setup)
+just check-all        # Check everything across all repos
+
+# Multi-repo git
+just status           # Git status for all repos
+just pull             # Pull latest for all repos
+just git-diff         # Diff summary across repos
+just git-push         # Push all repos
+
+# Production
+just up               # Start production services
+just up-build         # Build and start (auto-configures OAuth clients)
+just down             # Stop services
+
+# Database access
+just db-accounts      # PostgreSQL shell for accounts database
+just db-sync          # PostgreSQL shell for sync database
+just shell-accounts   # Shell into accounts container
+just shell-sync       # Shell into sync container
 ```
 
-## Repositories
+## Sub-Repo Commands
 
-This meta repo orchestrates multiple sub-repositories:
+Each sub-repo has its own `justfile` or `package.json`. See their individual READMEs for full details.
 
-### Go Services (checked out as sub-repos)
+| Repo | Check | Dev / Run | Other |
+|------|-------|-----------|-------|
+| `betterbase/` | `just check` | `just check-js` | `just test` (Rust only) |
+| `betterbase-accounts/` | `just check` | `just dev` | |
+| `betterbase-sync/` | `just check` | `just dev` | `just bench` |
+| `betterbase-inference/` | `just check` | | |
+| `betterbase-examples/tasks/` | `pnpm check` | `pnpm dev` | |
 
-- **[betterbase-accounts](betterbase-accounts/)** (port 5377) — OPAQUE password auth + OAuth 2.0 server with PKCE and JWE scoped key delivery
-- **[betterbase-sync](betterbase-sync/)** (port 5379) — Encrypted blob synchronization service with JWT validation and WebSocket push notifications
-- **[betterbase-inference](betterbase-inference/)** (port 5381) — Authenticated inference proxy with E2EE support, forwards requests to Tinfoil TEE
+## Environment Variables
 
-### TypeScript Packages (checked out as sub-repos)
+All configuration is in `.env` (generated by `just setup`). Key variables:
 
-- **[betterbase](betterbase/)** — Client libraries for auth, crypto, and sync
-  - `/sdk/auth` — OAuth 2.0 + PKCE client with scoped encryption key delivery
-  - `/sdk/crypto` — AES-256-GCM encryption via Web Crypto API
-  - `/sdk/sync` — HTTP sync client with CBOR-seq protocol and real-time streaming
-  - `/sdk/inference` — Authenticated E2EE inference client (wraps Tinfoil SDK)
-- **[betterbase-db](betterbase-db/)** — Type-safe document store with migrations and sync
-  - `/sdk/db` — Schema-guided document database with json-joy CRDT sync, automatic conflict-free merge, and IndexedDB/SQLite adapters
+| Variable | Service | Description |
+|----------|---------|-------------|
+| `OPAQUE_SERVER_SETUP` | accounts | OPAQUE server key material (hex). Changing invalidates all passwords. |
+| `OAUTH_ISSUER` | accounts | Stable issuer URL for JWT identity namespace |
+| `CAP_KEY_ID` / `CAP_SECRET` | accounts | Proof-of-work CAPTCHA credentials |
+| `IDENTITY_HASH_KEY` | sync | HMAC key for privacy-preserving invitation lookups |
+| `SPACE_SESSION_SECRET` | sync | HMAC key for space session tokens |
 
-### Examples
+Database credentials (`ACCOUNTS_DB_*`, `SYNC_DB_*`) are also in `.env`.
 
-- **[examples/todo](examples/todo/)** — React todo app using `/sdk/db` + `/sdk/sync` + `/sdk/auth`
-- **[examples/notes](examples/notes/)** — React notes app with rich text editing and encrypted sync
-- **[examples/oauth-demo](examples/oauth-demo/)** — OAuth 2.0 + PKCE flow demo
+## Infrastructure
 
-### Integration
+**Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync); disabled in dev mode. **CAP** proof-of-work CAPTCHA. **PostgreSQL** for accounts and sync (separate databases). Dev volumes prefixed with `dev_` so `just dev-down -v` never deletes production data.
 
-- **[integration](integration/)** — Go integration tests (requires running services)
+## Contributing
 
-## Services
+We welcome contributions. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-| Service | Dev URL | Description |
-|---------|---------|-------------|
-| betterbase-accounts API | http://localhost:5377 | Authentication and OAuth |
-| betterbase-accounts Web | http://localhost:5378 | Web UI (Vite dev server) |
-| betterbase-sync | http://localhost:5379 | Blob synchronization |
-| todo app | http://localhost:5380 | Example todo application |
-| oauth-demo | http://localhost:5381 | OAuth demo app |
-| notes app | http://localhost:5382 | Example notes application |
+Found a bug or have a feature request? [Open an issue](https://github.com/BetterbaseHQ/betterbase-dev/issues).
 
-*Note: betterbase-inference is not yet integrated into docker-compose. Run it independently with `cd betterbase-inference && just run-dev` (requires `TINFOIL_API_KEY`). When running standalone, it uses port 5381 (same as oauth-demo in dev), so stop dev services first or adjust the port.*
+## License
 
-## Development (Recommended)
-
-Full-stack development with hot reload, fully containerized:
-
-```bash
-# Start services (auto-runs setup on first run, configures OAuth clients)
-just dev
-
-# Or run in background
-just dev-bg
-
-# View logs
-just dev-logs              # all services
-just dev-logs accounts     # specific service
-
-# Rebuild after Dockerfile or dependency changes
-just dev-rebuild
-
-# Stop
-just dev-down
-```
-
-Edit any Go or React file and changes reload automatically.
-
-### OAuth Setup
-
-The example apps (todo, notes, oauth-demo) need OAuth clients registered in accounts. `just dev` handles this automatically, but you can also run manually:
-
-```bash
-just setup-examples    # Creates OAuth clients for all example apps
-just setup-todo        # Creates OAuth client for todo app only
-just setup-notes       # Creates OAuth client for notes app only
-just setup-demo        # Creates OAuth client for oauth-demo only
-```
-
-Client IDs are saved to `.env` files in each app directory and loaded via Vite.
-
-## Production
-
-```bash
-# Start production containers
-just prod
-
-# Rebuild and start
-just prod-build
-
-# These also work (backward compatible)
-just up
-just up-build
-```
-
-## Standalone Development
-
-### Go Services
-
-Each Go service can run independently (fully containerized):
-
-```bash
-cd betterbase-accounts && just dev    # API :5377, Web :5378
-cd betterbase-sync && just dev        # API :5379
-cd betterbase-inference && just run-dev   # API :5381 (requires TINFOIL_API_KEY)
-```
-
-### TypeScript Packages
-
-```bash
-# betterbase (all packages)
-cd betterbase && pnpm check    # Format + build + typecheck + test
-cd betterbase && pnpm build    # Build all packages
-cd betterbase && pnpm test     # Test all packages
-
-# betterbase-db
-cd betterbase-db && pnpm check          # Format + build + typecheck + test
-cd betterbase-db && pnpm test:watch     # Watch mode
-
-# Single package
-cd betterbase/packages/sync && pnpm test
-```
-
-### Examples
-
-```bash
-cd examples/todo && just check       # Lint + build
-cd examples/todo && pnpm dev         # Dev server on :5380
-```
-
-## Integration Tests
-
-```bash
-# Start services first
-just up
-just wait
-
-# Run tests
-just test
-```
-
-## Database Access
-
-```bash
-# PostgreSQL shell for accounts
-just db-accounts
-
-# PostgreSQL shell for sync
-just db-sync
-
-# Container shell
-just shell-accounts
-just shell-sync
-```
-
-## Cross-Repo Dependencies
-
-Examples reference TypeScript packages via `link:` protocol (not `file:` or `workspace:`):
-
-```json
-{
-  "dependencies": {
-    "/sdk/auth": "link:../../betterbase/packages/auth",
-    "/sdk/sync": "link:../../betterbase/packages/sync",
-    "/sdk/db": "link:../../betterbase-db"
-  }
-}
-```
-
-This creates symlinks without resolving the package's own dependencies — essential for cross-repo refs.
-
-## Configuration
-
-Core environment variables are automatically generated by `just setup`. To regenerate:
-
-```bash
-rm .env
-just setup
-```
-
-| Variable | Description | Auto-generated? |
-|----------|-------------|-----------------|
-| `OPAQUE_SERVER_KEY` | Server private key for OPAQUE | Yes |
-| `OPAQUE_PUBLIC_KEY` | Server public key for OPAQUE | Yes |
-| `OAUTH_ISSUER` | Stable OAuth/JWT issuer URL for accounts and federation identity | Yes |
-| `JWKS_URL` | JWKS endpoint for JWT validation (used by betterbase-sync, betterbase-inference) | Yes |
-| `TINFOIL_API_KEY` | API key for Tinfoil backend (used by betterbase-inference) | No — add manually |
-
-## Troubleshooting
-
-### Services not starting
-```bash
-# Check status
-just status
-
-# View logs
-just logs
-
-# Rebuild from scratch
-just clean
-just up-build
-```
-
-### Health check failing
-```bash
-# Check individual endpoints
-curl http://localhost:5377/health
-curl http://localhost:5379/health
-curl http://localhost:5381/health  # betterbase-inference (if running standalone)
-```
-
-### JWKS not available
-The sync service depends on accounts being healthy first. Ensure accounts is running:
-```bash
-curl http://localhost:5377/.well-known/jwks.json
-```
-
-## Updating
-
-```bash
-just pull    # pulls all repos
-```
+[Apache-2.0](LICENSE)
