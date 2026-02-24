@@ -59,51 +59,25 @@ up:
     fi
     {{prod_compose}} up -d
 
-# Start with rebuild (auto-configures example app OAuth clients)
+# Build and start production
 up-build:
     #!/usr/bin/env bash
     set -e
-
-    NEED_SETUP=false
-
-    # Check if launchpad needs OAuth setup
-    if [ ! -f "./betterbase-examples/launchpad/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "./betterbase-examples/launchpad/.env"; then
-        NEED_SETUP=true
+    if [ ! -f .env ]; then
+        echo "No .env found, running setup..."
+        ./scripts/setup.sh
     fi
-
-    # Check if tasks needs OAuth setup
-    if [ ! -f "./betterbase-examples/tasks/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "./betterbase-examples/tasks/.env"; then
-        NEED_SETUP=true
-    fi
-
-    # Check if photos needs OAuth setup
-    if [ ! -f "./betterbase-examples/photos/.env" ] || ! grep -q "^VITE_OAUTH_CLIENT_ID=" "./betterbase-examples/photos/.env"; then
-        NEED_SETUP=true
-    fi
-
-    if [ "$NEED_SETUP" = true ]; then
-        echo "Example apps need OAuth client setup..."
-        {{dev_compose}} up -d --build accounts
-        echo "Waiting for accounts to be healthy..."
-        until curl -sf http://localhost:5377/health > /dev/null 2>&1; do sleep 1; done
-        just setup-examples
-    fi
-
-    {{dev_compose}} up -d --build
+    {{prod_compose}} up -d --build
 
 # Stop all services (dev or prod, whichever is running)
 down:
     {{dev_compose}} down 2>/dev/null; {{prod_compose}} down 2>/dev/null; true
 
-# View logs
-logs:
-    {{dev_compose}} logs -f
-
-# Run all checks on integration tests (format, lint, test)
-check: fmt lint test
-
-# Run checks on all repos (accounts, sync, and integration)
+# Run checks on all repos (SDK, accounts, sync, examples)
 check-all:
+    @echo "=== Checking betterbase (SDK) ==="
+    cd ./betterbase && just check
+    @echo ""
     @echo "=== Checking betterbase-accounts ==="
     cd ./betterbase-accounts && just check
     @echo ""
@@ -133,22 +107,6 @@ check-all:
     @echo ""
     @echo "=== Checking chat app ==="
     cd ./betterbase-examples/chat && pnpm check
-    @echo ""
-    @echo "=== Checking integration tests ==="
-    just check
-
-# Format integration test code
-fmt:
-    cd integration && gofmt -w .
-    @command -v goimports >/dev/null 2>&1 && (cd integration && goimports -w .) || true
-
-# Lint integration test code
-lint:
-    cd integration && go vet ./...
-
-# Run integration tests
-test:
-    cd integration && go test -v ./...
 
 # Clean up dev environment including volumes
 clean:
@@ -381,7 +339,7 @@ git-diff:
 
 # Show current branch for all repos
 git-branch:
-    @echo "betterbase: $(git branch --show-current)"
+    @echo "betterbase-dev: $(git branch --show-current)"
     @echo "betterbase-accounts: $(cd ./betterbase-accounts && git branch --show-current)"
     @echo "betterbase-inference: $(cd ./betterbase-inference && git branch --show-current)"
     @echo "betterbase: $(cd ./betterbase && git branch --show-current)"
@@ -429,21 +387,13 @@ build:
 restart:
     {{dev_compose}} restart
 
-# Restart a specific dev service (accounts, sync, or todo)
+# Restart a specific dev service (e.g., accounts, sync, launchpad)
 restart-service service:
     {{dev_compose}} restart {{service}}
 
 # Show docker-compose status
 ps:
     {{dev_compose}} ps
-
-# View logs for accounts service
-logs-accounts:
-    {{dev_compose}} logs -f accounts
-
-# View logs for sync service
-logs-sync:
-    {{dev_compose}} logs -f sync
 
 # Remove all dev containers and images (full reset)
 nuke:
@@ -459,10 +409,22 @@ health:
     @curl -sf http://localhost:5377/health && echo " OK" || echo " FAIL"
     @echo "Checking sync..."
     @curl -sf http://localhost:5379/health && echo " OK" || echo " FAIL"
-    @echo "Checking todo..."
-    @curl -sf http://localhost:5380/ && echo " OK" || echo " FAIL"
+    @echo "Checking launchpad..."
+    @curl -sf http://localhost:5380/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
+    @echo "Checking tasks..."
+    @curl -sf http://localhost:5381/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
+    @echo "Checking notes..."
+    @curl -sf http://localhost:5382/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
+    @echo "Checking photos..."
+    @curl -sf http://localhost:5383/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
+    @echo "Checking board..."
+    @curl -sf http://localhost:5384/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
+    @echo "Checking chat..."
+    @curl -sf http://localhost:5385/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
+    @echo "Checking passwords..."
+    @curl -sf http://localhost:5387/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
 
-# Wait for services to be healthy
+# Wait for core services (accounts + sync) to be healthy
 wait:
     @echo "Waiting for accounts..."
     @until curl -sf http://localhost:5377/health > /dev/null 2>&1; do sleep 1; done
@@ -470,9 +432,6 @@ wait:
     @echo "Waiting for sync..."
     @until curl -sf http://localhost:5379/health > /dev/null 2>&1; do sleep 1; done
     @echo "sync is healthy"
-    @echo "Waiting for todo..."
-    @until curl -sf http://localhost:5380/ > /dev/null 2>&1; do sleep 1; done
-    @echo "todo is healthy"
 
 # =============================================================================
 # Container Access
@@ -574,7 +533,7 @@ e2e-up:
     # Generate Server B OPAQUE keys if not already set
     if ! grep -q "^OPAQUE_SERVER_SETUP_B=.\+" .env 2>/dev/null; then
         echo "Generating OPAQUE keys for Server B..."
-        SETUP_B=$(cd ./betterbase-accounts && SQLX_OFFLINE=true cargo run --release -p betterbase-accounts-keygen 2>/dev/null)
+        SETUP_B=$(cd ./betterbase-accounts && SQLX_OFFLINE=true cargo run --release -p betterbase-accounts-keygen)
         echo "" >> .env
         echo "# Server B (federation e2e)" >> .env
         echo "OPAQUE_SERVER_SETUP_B=$SETUP_B" >> .env
@@ -709,13 +668,11 @@ e2e-setup:
     sed -i.bak 's/^    //' e2e/.env && rm -f e2e/.env.bak
     echo "e2e/.env written"
 
-# Run e2e tests (services must be running, harness started by Playwright)
-# Pass -x to stop on first failure: just e2e-test -x
+# Run e2e tests (pass -x to stop on first failure)
 e2e-test *args:
     cd e2e && pnpm test {{args}}
 
-# Full cycle: clean slate → setup → run tests
-# Pass -x to stop on first failure: just e2e -x
+# Full E2E cycle: clean → setup → run tests (pass -x to stop on first failure)
 e2e *args:
     #!/usr/bin/env bash
     set -e

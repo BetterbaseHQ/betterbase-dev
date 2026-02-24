@@ -9,7 +9,7 @@ Betterbase is the orchestration repo for the Betterbase ecosystem — an open pl
 - **Rust microservices** (checked out as sub-repos):
   - `betterbase-accounts` (auth, port 5377) — Axum, OPAQUE + OAuth 2.0, React web UI
   - `betterbase-sync` (blob sync, port 5379) — Axum, WebSocket RPC + CBOR, encrypted blobs
-  - `betterbase-inference` (E2EE inference proxy, port 5381) — Axum, forwards to Tinfoil TEE
+  - `betterbase-inference` (E2EE inference proxy) — Axum, forwards to Tinfoil TEE
 - **Rust/WASM SDK** (checked out as sub-repo): `betterbase/` — Cargo workspace (7 crates) + TypeScript layer (`js/`) published as `betterbase` with subpath exports `/crypto`, `/auth`, `/discovery`, `/sync`, `/db`
 - **Example apps** (checked out as sub-repo): `betterbase-examples/` — launchpad (portal), tasks (offline-first todos), notes (rich text CRDT), passwords (encrypted vault), photos (encrypted files), board (collaborative), chat (encrypted messaging), shared (@betterbase/examples-shared)
 - **E2E tests**: Playwright browser tests in `e2e/`
@@ -35,11 +35,11 @@ just dev-logs     # View all logs (or pass service name: just dev-logs accounts)
 just prod         # Start production
 just prod-build   # Build and start production
 just up           # Alias for prod
-just up-build     # Build and start (auto-configures OAuth clients for examples)
+just up-build     # Build and start production
 just down         # Stop services
 
 # Testing
-just check-all    # Run checks on all repos (accounts, sync, examples)
+just check-all    # Run checks on all repos (SDK, accounts, sync, examples)
 just e2e          # Full E2E cycle: clean -> setup -> run Playwright tests
 just e2e-setup    # Start e2e services + create OAuth client + write e2e/.env
 just e2e-test     # Run e2e tests (services must be running via e2e-setup)

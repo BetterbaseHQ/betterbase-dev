@@ -31,7 +31,9 @@ Data is stored plaintext in the local database -- fully queryable and indexable.
 
 ### Prerequisites
 
-- [Git](https://git-scm.com/), [Rust](https://rustup.rs/), [Docker](https://www.docker.com/), [just](https://github.com/casey/just), [jq](https://jqlang.github.io/jq/)
+- [Git](https://git-scm.com/), [Rust](https://rustup.rs/), [Docker](https://www.docker.com/) (with Compose v2), [just](https://github.com/casey/just), [jq](https://jqlang.github.io/jq/), [Node.js](https://nodejs.org/) + [pnpm](https://pnpm.io/)
+
+> Tested on macOS and Linux. Windows users should use WSL2.
 
 ### Setup
 
@@ -60,7 +62,11 @@ The dev environment auto-configures OAuth clients for all example apps on first 
 Once `just dev` reports all services healthy:
 
 - **Auth UI**: [http://localhost:5378](http://localhost:5378) -- register an account and explore the login flow
-- **Tasks example**: `cd betterbase-examples/tasks && pnpm dev` then open [http://localhost:5381](http://localhost:5381)
+- **Launchpad**: [http://localhost:5380](http://localhost:5380) -- portal app (auth only)
+- **Tasks**: [http://localhost:5381](http://localhost:5381) -- offline-first todos with sync
+- **Notes**: [http://localhost:5382](http://localhost:5382) -- rich text notes with CRDT merging
+
+All example apps start automatically with `just dev`. See the port table below for the full list.
 
 ### Verify
 
@@ -73,7 +79,15 @@ just health   # Check service health endpoints
 | Accounts | 5377 | Auth server (OPAQUE + OAuth 2.0) |
 | Accounts Web UI | 5378 | Login/registration UI (dev only) |
 | Sync | 5379 | Encrypted blob sync (WebSocket + REST) |
-| Inference | 5381 | E2EE inference proxy (run standalone) |
+| Launchpad | 5380 | Portal app (dev only) |
+| Tasks | 5381 | Offline-first todos (dev only) |
+| Notes | 5382 | Rich text notes (dev only) |
+| Photos | 5383 | Photo sharing (dev only) |
+| Board | 5384 | Collaborative board (dev only) |
+| Chat | 5385 | Encrypted messaging (dev only) |
+| Passwords | 5387 | Password vault (dev only) |
+
+> `betterbase-inference` is not included in the default dev stack. It requires a [Tinfoil TEE](https://tinfoil.sh/) backend and is run standalone.
 
 ## Architecture
 
@@ -141,6 +155,18 @@ betterbase-dev/                        # You are here
 
 ## Development
 
+### Dev vs Production
+
+| | Dev (`just dev`) | Production (`just up`) |
+|---|---|---|
+| Hot reload | Yes (Rust + Vite) | No |
+| Caddy proxy | Disabled (direct port access) | Enabled (rate limiting) |
+| Example apps | All started automatically | Not started |
+| SMTP | Logged to console | Real email delivery |
+| Volumes | Prefixed with `dev_` | Production volumes |
+
+### Commands
+
 ```bash
 # Dev
 just dev              # Start dev environment (hot reload, foreground)
@@ -153,7 +179,7 @@ just health           # Check service health
 # Testing
 just e2e              # E2E browser tests: clean, setup, run (isolated stack)
 just e2e-test         # Run tests only (after e2e-setup)
-just check-all        # Check everything across all repos
+just check-all        # Run checks across all repos
 
 # Multi-repo git
 just status           # Git status for all repos
@@ -163,7 +189,7 @@ just git-push         # Push all repos
 
 # Production
 just up               # Start production services
-just up-build         # Build and start (auto-configures OAuth clients)
+just up-build         # Build and start production
 just down             # Stop services
 
 # Database access
@@ -202,6 +228,22 @@ Database credentials (`ACCOUNTS_DB_*`, `SYNC_DB_*`) are also in `.env`.
 ## Infrastructure
 
 **Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync); disabled in dev mode. **CAP** proof-of-work CAPTCHA. **PostgreSQL** for accounts and sync (separate databases). Dev volumes prefixed with `dev_` so `just dev-down -v` never deletes production data.
+
+## Troubleshooting
+
+**Docker not running** -- `just dev` requires Docker Desktop (or Docker Engine) to be running. Start it and try again.
+
+**Port already in use** -- Another process is using a required port. Check with `lsof -i :5377` (or whichever port) and stop the conflicting process.
+
+**OPAQUE keygen fails** -- The setup compiles a Rust binary. Ensure you have a working Rust toolchain (`rustup update`). If compilation fails, check the error output for missing system dependencies.
+
+**Sub-repo clone fails** -- If `just setup` fails cloning repositories, ensure you have internet access and can reach github.com. The setup uses HTTPS URLs which work without SSH key configuration.
+
+**CAP provisioning fails** -- CAP runs in Docker during setup. If it fails, check Docker logs with `docker compose logs cap` and ensure port 3000 is not in use.
+
+**Stale state after switching branches** -- Run `just dev-down` to clear dev volumes, then `just dev` to start fresh.
+
+**Full reset** -- `just nuke` removes all containers, volumes, and locally-built images. Then re-run `just setup && just dev`.
 
 ## Contributing
 

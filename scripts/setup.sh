@@ -36,10 +36,12 @@ check_dependencies() {
     local missing=()
 
     command -v git >/dev/null 2>&1 || missing+=("git")
-    command -v cargo >/dev/null 2>&1 || missing+=("cargo (Rust)")
+    command -v cargo >/dev/null 2>&1 || missing+=("cargo (https://rustup.rs)")
     command -v docker >/dev/null 2>&1 || missing+=("docker")
     command -v curl >/dev/null 2>&1 || missing+=("curl")
     command -v jq >/dev/null 2>&1 || missing+=("jq")
+    command -v node >/dev/null 2>&1 || missing+=("node (https://nodejs.org)")
+    command -v pnpm >/dev/null 2>&1 || missing+=("pnpm (https://pnpm.io)")
 
     if [ ${#missing[@]} -gt 0 ]; then
         log_error "Missing required dependencies: ${missing[*]}"
@@ -66,35 +68,35 @@ clone_repos() {
 
     if [ ! -d betterbase-accounts ]; then
         log_info "Cloning betterbase-accounts..."
-        git clone git@github.com:BetterbaseHQ/betterbase-accounts.git
+        git clone https://github.com/BetterbaseHQ/betterbase-accounts.git
     else
         log_success "betterbase-accounts already exists"
     fi
 
     if [ ! -d betterbase-sync ]; then
         log_info "Cloning betterbase-sync..."
-        git clone git@github.com:BetterbaseHQ/betterbase-sync.git
+        git clone https://github.com/BetterbaseHQ/betterbase-sync.git
     else
         log_success "betterbase-sync already exists"
     fi
 
     if [ ! -d betterbase-inference ]; then
         log_info "Cloning betterbase-inference..."
-        git clone git@github.com:BetterbaseHQ/betterbase-inference.git
+        git clone https://github.com/BetterbaseHQ/betterbase-inference.git
     else
         log_success "betterbase-inference already exists"
     fi
 
     if [ ! -d betterbase ]; then
         log_info "Cloning betterbase..."
-        git clone git@github.com:BetterbaseHQ/betterbase.git
+        git clone https://github.com/BetterbaseHQ/betterbase.git
     else
         log_success "betterbase already exists"
     fi
 
     if [ ! -d betterbase-examples ]; then
         log_info "Cloning betterbase-examples..."
-        git clone git@github.com:BetterbaseHQ/betterbase-examples.git
+        git clone https://github.com/BetterbaseHQ/betterbase-examples.git
     else
         log_success "betterbase-examples already exists"
     fi
@@ -122,14 +124,14 @@ generate_opaque_keys() {
         return 0
     fi
 
-    log_info "Generating OPAQUE keys..."
+    log_info "Generating OPAQUE keys (compiling Rust keygen binary — this may take a minute)..."
 
     if [ ! -d betterbase-accounts ]; then
         log_error "betterbase-accounts directory not found. Run setup without --skip-repos first."
         exit 1
     fi
 
-    OPAQUE_SERVER_SETUP=$(cd betterbase-accounts && SQLX_OFFLINE=true cargo run --release -p betterbase-accounts-keygen 2>/dev/null)
+    OPAQUE_SERVER_SETUP=$(cd betterbase-accounts && SQLX_OFFLINE=true cargo run --release -p betterbase-accounts-keygen)
 
     if [ -z "$OPAQUE_SERVER_SETUP" ]; then
         log_error "OPAQUE key generation failed"
@@ -324,7 +326,7 @@ EOF
 main() {
     echo ""
     echo "╔═══════════════════════════════════════════════════════════════════╗"
-    echo "║              Betterbase Dev Setup                                  ║"
+    echo "║                        Betterbase Dev Setup                       ║"
     echo "╚═══════════════════════════════════════════════════════════════════╝"
     echo ""
 
@@ -338,7 +340,7 @@ main() {
             log_success ".env is already fully configured"
             echo ""
             echo "To regenerate all keys, delete .env and run setup again."
-            echo "Run 'just up' to start services."
+            echo "Run 'just dev' to start services."
             exit 0
         fi
     fi
@@ -401,17 +403,23 @@ main() {
 
     echo ""
     echo "╔═══════════════════════════════════════════════════════════════════╗"
-    echo "║              Setup Complete!                                      ║"
+    echo "║                          Setup Complete!                          ║"
     echo "╚═══════════════════════════════════════════════════════════════════╝"
     echo ""
     log_success "All security keys have been generated"
     echo ""
     echo "Next steps:"
-    echo "  1. Run 'just up' to start all services"
-    echo "  2. Access the app at http://localhost:5380"
+    echo "  1. Run 'just dev' to start all services with hot reload"
+    echo "  2. Open http://localhost:5378 for the auth UI"
+    echo "  3. Open http://localhost:5380 for the launchpad portal"
     echo ""
-    echo "CAP Dashboard: http://localhost:5377/cap/"
-    echo "  Login with the CAP_ADMIN_KEY in your .env file"
+    echo "All example apps are available in dev mode:"
+    echo "  Tasks:     http://localhost:5381"
+    echo "  Notes:     http://localhost:5382"
+    echo "  Photos:    http://localhost:5383"
+    echo "  Board:     http://localhost:5384"
+    echo "  Chat:      http://localhost:5385"
+    echo "  Passwords: http://localhost:5387"
     echo ""
 }
 

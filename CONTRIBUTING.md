@@ -30,6 +30,10 @@ Betterbase is split across several repositories, each checked out as a subdirect
 
 Submit PRs to the individual repository that your change applies to.
 
+### Working on a Single Service
+
+You don't need to run the full stack to work on one component. Start the platform with `just dev`, then make changes to the service you're working on -- hot reload will pick them up automatically. Each sub-repo has its own `justfile` with `just check` for running that service's tests independently.
+
 ## Development Workflow
 
 1. Create a feature branch from `main`
@@ -37,13 +41,14 @@ Submit PRs to the individual repository that your change applies to.
 3. Run the relevant checks:
 
 ```bash
-# Rust services
-just check
+# Rust services (from their directory)
+cd betterbase-accounts && just check
+cd betterbase-sync && just check
 
 # SDK
-cd betterbase && pnpm check
+cd betterbase && just check
 
-# Full platform
+# All repos at once (from project root)
 just check-all
 ```
 
@@ -60,8 +65,8 @@ just check-all
 
 - Write tests for new functionality and bug fixes
 - Ensure all existing tests pass before submitting
-- Integration tests require running services (`just dev` then `just test`)
-- E2E tests: `just e2e`
+- Run `just check-all` from the project root to verify everything
+- E2E tests: `just e2e` (requires Docker)
 
 ## Reporting Issues
 
