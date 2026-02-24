@@ -1,9 +1,9 @@
 import { useState, useCallback, useMemo, useEffect, type ReactNode } from "react";
-import { OAuthClient } from "@betterbase/sdk/auth";
-import { useAuth as useAuthBase } from "@betterbase/sdk/auth/react";
-import { createOpfsDb, type OpfsDb } from "@betterbase/sdk/db";
-import { LessProvider, useSyncReady } from "@betterbase/sdk/sync/react";
-import { spaces } from "@betterbase/sdk/sync";
+import { OAuthClient } from "betterbase/auth";
+import { useAuth as useAuthBase } from "betterbase/auth/react";
+import { createDatabase, type Database } from "betterbase/db";
+import { BetterbaseProvider, useSyncReady } from "betterbase/sync/react";
+import { spaces } from "betterbase/sync";
 import { items, notes } from "./collections";
 import { TestBridge } from "./bridge";
 
@@ -29,14 +29,14 @@ function getConfig(): AppConfig {
   const urlDomain = params.get("domain");
 
   // Persist across OAuth redirects (which strip query params)
-  if (urlDb) sessionStorage.setItem("less-e2e-db", urlDb);
-  if (urlClientId) sessionStorage.setItem("less-e2e-clientId", urlClientId);
-  if (urlDomain) sessionStorage.setItem("less-e2e-domain", urlDomain);
+  if (urlDb) sessionStorage.setItem("betterbase-e2e-db", urlDb);
+  if (urlClientId) sessionStorage.setItem("betterbase-e2e-clientId", urlClientId);
+  if (urlDomain) sessionStorage.setItem("betterbase-e2e-domain", urlDomain);
 
   return {
-    dbName: urlDb || sessionStorage.getItem("less-e2e-db") || "less-e2e",
-    clientId: urlClientId || sessionStorage.getItem("less-e2e-clientId") || DEFAULT_CLIENT_ID,
-    domain: urlDomain || sessionStorage.getItem("less-e2e-domain") || DEFAULT_DOMAIN,
+    dbName: urlDb || sessionStorage.getItem("betterbase-e2e-db") || "betterbase-e2e",
+    clientId: urlClientId || sessionStorage.getItem("betterbase-e2e-clientId") || DEFAULT_CLIENT_ID,
+    domain: urlDomain || sessionStorage.getItem("betterbase-e2e-domain") || DEFAULT_DOMAIN,
   };
 }
 
@@ -45,7 +45,7 @@ function getConfig(): AppConfig {
 // ---------------------------------------------------------------------------
 
 interface AuthContextValue {
-  session: import("@betterbase/sdk/auth").AuthSession | null;
+  session: import("betterbase/auth").AuthSession | null;
   getToken: () => Promise<string | null>;
   encryptionKey: Uint8Array | null;
   epochKey: Uint8Array | null;
@@ -141,7 +141,7 @@ function SyncGate({ auth }: { auth: AuthContextValue }) {
 }
 
 // ---------------------------------------------------------------------------
-// SyncLayer — wraps LessProvider once auth is ready
+// SyncLayer — wraps BetterbaseProvider once auth is ready
 // ---------------------------------------------------------------------------
 
 function SyncLayer({
@@ -151,7 +151,7 @@ function SyncLayer({
 }: {
   auth: AuthContextValue;
   config: AppConfig;
-  db: OpfsDb;
+  db: Database;
 }) {
   const { session, logout } = auth;
 
@@ -160,7 +160,7 @@ function SyncLayer({
   }
 
   return (
-    <LessProvider
+    <BetterbaseProvider
       adapter={db}
       collections={[items, notes]}
       editChainCollections={["items"]}
@@ -170,7 +170,7 @@ function SyncLayer({
       onAuthError={logout}
     >
       <SyncGate auth={auth} />
-    </LessProvider>
+    </BetterbaseProvider>
   );
 }
 
@@ -179,15 +179,15 @@ function SyncLayer({
 // ---------------------------------------------------------------------------
 
 export default function App() {
-  const [db, setDb] = useState<OpfsDb | null>(null);
+  const [db, setDb] = useState<Database | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
   const [config] = useState<AppConfig>(() => getConfig());
 
   useEffect(() => {
     let disposed = false;
-    let dbInstance: OpfsDb | undefined;
+    let dbInstance: Database | undefined;
 
-    createOpfsDb(config.dbName, [items, notes, spaces], {
+    createDatabase(config.dbName, [items, notes, spaces], {
       worker: new Worker(new URL("./db-worker.ts", import.meta.url), { type: "module" }),
     }).then(
       (d) => {

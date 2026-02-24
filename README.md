@@ -13,15 +13,15 @@ We believe your users' data should be private by default.
 ## What It Looks Like
 
 ```tsx
-import { useQuery, useRecord, useAuth } from "@betterbase/sdk";
+import { collection, t, createDatabase } from "betterbase/db";
+import { useQuery } from "betterbase/db/react";
+
+const tasks = collection("tasks", { title: t.string(), done: t.boolean() });
+const db = await createDatabase("my-app", [tasks], { worker });
 
 function Tasks() {
-  const tasks = useQuery("tasks", { where: { done: false } });
-  const [task, update] = useRecord("tasks", selectedId);
-
-  return tasks.map((t) => (
-    <div key={t.id} onClick={() => update({ done: true })}>{t.title}</div>
-  ));
+  const result = useQuery(tasks, { where: { done: false } });
+  return result?.data.map((t) => <div key={t.id}>{t.title}</div>);
 }
 ```
 
@@ -82,7 +82,7 @@ just health   # Check service health endpoints
 |                        Your App (React)                         |
 |  useQuery, useRecord, useSpaces, usePresence, useAuth           |
 +-----------------------------------------------------------------+
-|                     @betterbase/sdk                             |
+|                       betterbase                                |
 |  /db          Local-first document store (SQLite WASM + OPFS)  |
 |  /sync        WebSocket sync, spaces, presence, file storage   |
 |  /auth        OAuth 2.0 + PKCE + scoped encryption keys        |
@@ -119,7 +119,7 @@ This is an orchestration repo. Each component lives in its own Git repository, c
 betterbase-dev/                        # You are here
 ├── betterbase/                        # SDK: Rust/WASM crypto + TypeScript client
 │   ├── crates/                        #   Rust crates (crypto, auth, discovery, sync-core, db)
-│   └── js/                            #   @betterbase/sdk (auth, crypto, discovery, sync, db)
+│   └── js/                            #   betterbase (auth, crypto, discovery, sync, db)
 ├── betterbase-accounts/               # Rust (Axum): OPAQUE auth + OAuth 2.0 server
 ├── betterbase-sync/                   # Rust (Axum): encrypted blob sync + WebSocket
 ├── betterbase-inference/              # Rust (Axum): E2EE inference proxy (Tinfoil TEE)

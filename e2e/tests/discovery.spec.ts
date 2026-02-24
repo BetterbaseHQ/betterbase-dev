@@ -20,7 +20,7 @@ test.describe("Discovery", () => {
   });
 
   test("discovery-based auth flow works end-to-end", async ({ authenticatedContext }) => {
-    // authenticatedContext uses domain-based OAuthClient and LessProvider
+    // authenticatedContext uses domain-based OAuthClient and BetterbaseProvider
     // (via the updated e2e harness) — if this works, discovery is functional.
     const { page } = await authenticatedContext();
 

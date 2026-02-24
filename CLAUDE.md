@@ -10,7 +10,7 @@ Betterbase is the orchestration repo for the Betterbase ecosystem — an open pl
   - `betterbase-accounts` (auth, port 5377) — Axum, OPAQUE + OAuth 2.0, React web UI
   - `betterbase-sync` (blob sync, port 5379) — Axum, WebSocket RPC + CBOR, encrypted blobs
   - `betterbase-inference` (E2EE inference proxy, port 5381) — Axum, forwards to Tinfoil TEE
-- **Rust/WASM SDK** (checked out as sub-repo): `betterbase/` — Cargo workspace (7 crates) + TypeScript layer (`js/`) published as `@betterbase/sdk` with subpath exports `/crypto`, `/auth`, `/discovery`, `/sync`, `/db`
+- **Rust/WASM SDK** (checked out as sub-repo): `betterbase/` — Cargo workspace (7 crates) + TypeScript layer (`js/`) published as `betterbase` with subpath exports `/crypto`, `/auth`, `/discovery`, `/sync`, `/db`
 - **Example apps** (checked out as sub-repo): `betterbase-examples/` — launchpad (portal), tasks (offline-first todos), notes (rich text CRDT), passwords (encrypted vault), photos (encrypted files), board (collaborative), chat (encrypted messaging), shared (@betterbase/examples-shared)
 - **E2E tests**: Playwright browser tests in `e2e/`
 
@@ -142,7 +142,7 @@ betterbase-inference/                   # E2EE inference proxy
 
 ### SDK (betterbase/)
 
-Cargo workspace with 7 Rust crates compiled to WASM, plus a TypeScript layer (`js/`) published as `@betterbase/sdk`:
+Cargo workspace with 7 Rust crates compiled to WASM, plus a TypeScript layer (`js/`) published as `betterbase`:
 
 | Crate | Purpose |
 |-------|---------|
@@ -158,7 +158,7 @@ TypeScript subpath exports: `/crypto`, `/auth`, `/auth/react`, `/discovery`, `/s
 
 ### Key Design: Encrypt-at-Boundary
 
-Data is stored **plaintext** in `@betterbase/sdk/db` (fully queryable). Encryption happens only when pushing to/pulling from the server. The server only sees encrypted blobs.
+Data is stored **plaintext** in `betterbase/db` (fully queryable). Encryption happens only when pushing to/pulling from the server. The server only sees encrypted blobs.
 
 1. User writes to db normally -> db tracks changes via CRDTs
 2. Push: collect dirty records -> wrap CRDT binary in BlobEnvelope -> encrypt -> send to server
@@ -170,12 +170,12 @@ Data is stored **plaintext** in `@betterbase/sdk/db` (fully queryable). Encrypti
 - OPAQUE protocol for password auth (server never sees password)
 - OAuth 2.0 + PKCE for public clients
 - When `sync` scope requested: extended PKCE binds ephemeral key, server delivers 256-bit encryption key via JWE
-- `@betterbase/sdk/auth` OAuthClient handles the full flow: `startAuth()` -> redirect -> `handleCallback()` -> tokens + encryption key
+- `betterbase/auth` OAuthClient handles the full flow: `startAuth()` -> redirect -> `handleCallback()` -> tokens + encryption key
 
 ### Sync Integration
 
-- `@betterbase/sdk/db` provides `SyncManager`, `SyncScheduler`, and React hooks
-- `@betterbase/sdk/sync` provides `LessSyncTransport` implementing `SyncTransport` interface
+- `betterbase/db` provides `SyncManager`, `SyncScheduler`, and React hooks
+- `betterbase/sync` provides `SyncTransport` class implementing the `SyncTransport` interface
 - Collections defined with typed schemas and auto-fields (id, createdAt, updatedAt)
 - json-joy CRDTs for conflict-free merge (character-level string merge, per-key object merge)
 

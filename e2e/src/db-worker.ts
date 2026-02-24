@@ -1,5 +1,5 @@
-import { initOpfsWorker } from "@betterbase/sdk/db/worker";
+import { initWorker } from "betterbase/db/worker";
 import { items, notes } from "./collections.js";
-import { spaces } from "@betterbase/sdk/sync";
+import { spaces } from "betterbase/sync";
 
-initOpfsWorker([items, notes, spaces]);
+initWorker([items, notes, spaces]);

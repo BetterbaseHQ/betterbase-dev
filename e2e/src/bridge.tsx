@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import {
   useSyncDb,
-  useLessSync,
+  useSync,
   useSpaces,
   usePendingInvitations,
   useActiveSpaces,
@@ -9,7 +9,7 @@ import {
   useSpaceManager,
   usePresenceManager,
   useEventManager,
-} from "@betterbase/sdk/sync/react";
+} from "betterbase/sync/react";
 import {
   moveToSpace as moveToSpaceFn,
   bulkMoveToSpace as bulkMoveToSpaceFn,
@@ -18,10 +18,10 @@ import {
   type SpaceRecord,
   type SpaceFields,
   type Member,
-} from "@betterbase/sdk/sync";
-import { encodeDIDKeyFromJwk } from "@betterbase/sdk/crypto";
+} from "betterbase/sync";
+import { encodeDIDKeyFromJwk } from "betterbase/crypto";
 import { items, notes } from "./collections";
-import type { CollectionDef } from "@betterbase/sdk/db";
+import type { CollectionDef } from "betterbase/db";
 
 // ---------------------------------------------------------------------------
 // Type declarations for window.__test
@@ -140,7 +140,7 @@ function resolveCollection(name: string): CollectionDef {
 }
 
 // ---------------------------------------------------------------------------
-// TestBridge component — renders inside LessProvider
+// TestBridge component — renders inside BetterbaseProvider
 // ---------------------------------------------------------------------------
 
 interface TestBridgeProps {
@@ -154,7 +154,7 @@ interface TestBridgeProps {
 
 export function TestBridge({ auth }: TestBridgeProps) {
   const db = useSyncDb();
-  const sync = useLessSync();
+  const sync = useSync();
   const spaces = useSpaces();
   const invitations = usePendingInvitations();
   const activeSpaces = useActiveSpaces();
@@ -197,7 +197,7 @@ export function TestBridge({ auth }: TestBridgeProps) {
     const filesClient = new FilesClient(syncClient);
 
     const store = new FileStore({
-      dbName: `less-file-cache-${spaceId}`,
+      dbName: `betterbase-file-cache-${spaceId}`,
     });
     await store.connect({
       filesClient,

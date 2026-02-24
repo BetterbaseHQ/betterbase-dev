@@ -1,4 +1,4 @@
-import { collection, t, type CollectionRead } from "@betterbase/sdk/db";
+import { collection, t, type CollectionRead } from "betterbase/db";
 
 export const items = collection("items")
   .v(1, {
