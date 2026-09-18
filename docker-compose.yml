@@ -128,6 +128,8 @@ services:
       # JWT auth - trusted accounts servers (issuer=jwks_url for internal networking)
       - TRUSTED_ISSUERS=${OAUTH_ISSUER:-https://accounts.betterbase.dev}=http://accounts:5377/.well-known/jwks.json
       - AUDIENCES=betterbase-sync
+      # Privacy-preserving rate limit identity hashing (matches accounts)
+      - IDENTITY_HASH_KEY=${IDENTITY_HASH_KEY}
     depends_on:
       accounts:
         condition: service_healthy
