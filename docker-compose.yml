@@ -10,10 +10,26 @@ services:
       - ADMIN_KEY=${CAP_ADMIN_KEY}
       - CORS_ORIGIN=*
       - ENABLE_ASSETS_SERVER=true
+      - REDIS_URL=redis://valkey:6379
     volumes:
       - cap_data:/data
+    depends_on:
+      valkey:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Valkey (Redis-compatible) backing store for CAP
+  valkey:
+    image: valkey/valkey:9-alpine
+    command: valkey-server --save 60 1 --loglevel warning --maxmemory-policy noeviction
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -122,5 +138,6 @@ services:
 
 volumes:
   cap_data:
+  valkey_data:
   accounts_db_data:
   sync_db_data:

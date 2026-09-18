@@ -20,6 +20,8 @@ services:
       # Override endpoints so discovery returns browser-reachable URLs
       - OAUTH_ISSUER=http://localhost:5377
       - SYNC_ENDPOINT=http://localhost:5379/api/v1
+      # Use committed .sqlx query cache — DB isn't migrated at compile time
+      - SQLX_OFFLINE=true
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5377/health"]
       start_period: 60s
@@ -43,6 +45,7 @@ services:
       # Enable file storage (filesystem-backed in dev)
       - FILE_STORAGE=fs
       - FILE_FS_PATH=/var/lib/betterbase-sync/files
+      - SQLX_OFFLINE=true
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5379/health"]
       start_period: 30s

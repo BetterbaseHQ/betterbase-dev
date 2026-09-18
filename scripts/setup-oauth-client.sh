@@ -24,9 +24,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Run oauth-client command inside the accounts container
+# Uses the compiled binary in prod; falls back to cargo run in dev containers
 oauth_client_cmd() {
     cd "$PROJECT_ROOT"
-    docker compose exec -T accounts /app/oauth-client "$@"
+    if docker compose exec -T accounts test -f /app/oauth-client 2>/dev/null; then
+        docker compose exec -T accounts /app/oauth-client "$@"
+    else
+        if [ -f .env ]; then set -a; source .env; set +a; fi
+        DB_USER="${ACCOUNTS_DB_USER:-accounts}"
+        DB_PASS="${ACCOUNTS_DB_PASSWORD:-accounts}"
+        DB_NAME="${ACCOUNTS_DB_NAME:-accounts}"
+        DB_URL="postgres://${DB_USER}:${DB_PASS}@accounts-db:5432/${DB_NAME}?sslmode=disable"
+        docker compose exec -T -e "DATABASE_URL=$DB_URL" -e "SQLX_OFFLINE=true" \
+            accounts cargo run --release -p betterbase-accounts-oauth-client -- "$@"
+    fi
 }
 
 echo -e "${GREEN}Setting up OAuth client for $APP_NAME...${NC}"
