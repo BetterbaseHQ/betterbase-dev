@@ -1,0 +1,12 @@
+# Toolchain pins for the dev environment. Run `mise install` after cloning.
+#
+# Deliberately NOT managed here:
+#   - rust/wasm-pack: rustup is canonical (`rustup target add wasm32-unknown-unknown`,
+#     `cargo install wasm-pack`) — mise's rust story is weaker for targets
+#   - docker: OrbStack/Docker Desktop
+#   - llvm (macOS only): `brew install llvm` — needed for llvm-ar (wasm archives)
+[tools]
+node = "24.21.0"
+pnpm = "12.4.2"
+just = "1.58.0"
+jq = "1.8.2"

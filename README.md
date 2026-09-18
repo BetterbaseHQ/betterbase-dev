@@ -31,7 +31,8 @@ Data is stored plaintext in the local database -- fully queryable and indexable.
 
 ### Prerequisites
 
-- [Git](https://git-scm.com/), [Rust](https://rustup.rs/) (with the `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`), [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/), [Docker](https://www.docker.com/) (with Compose v2), [just](https://github.com/casey/just), [jq](https://jqlang.github.io/jq/), [python3](https://www.python.org/), [Node.js](https://nodejs.org/) + [pnpm](https://pnpm.io/)
+- [mise](https://mise.jdx.dev/) (recommended): `mise install` provisions the exact pinned toolchain from `.mise.toml` — node, pnpm, just, jq
+- Or manually: [Git](https://git-scm.com/), [Rust](https://rustup.rs/) (with the `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`), [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/), [Docker](https://www.docker.com/) (with Compose v2), [just](https://github.com/casey/just), [jq](https://jqlang.github.io/jq/), [python3](https://www.python.org/), [Node.js](https://nodejs.org/) + [pnpm](https://pnpm.io/)
 - macOS additionally needs LLVM's tools (`brew install llvm`) — the BSD `ar` cannot create WASM archives
 
 > Tested on macOS and Linux. Windows users should use WSL2.

@@ -27,6 +27,27 @@ ENV_FILE="$PROJECT_ROOT/.env"
 cd "$PROJECT_ROOT"
 
 # =============================================================================
+# mise Toolchain
+# =============================================================================
+
+# .mise.toml pins node/pnpm/just/jq. mise is recommended but optional —
+# without it the checks fall back to whatever is on PATH.
+install_mise_tools() {
+    if ! command -v mise >/dev/null 2>&1; then
+        log_info "mise not found — using tools already on PATH (see .mise.toml for pinned versions)"
+        return 0
+    fi
+
+    log_info "Installing pinned toolchain via mise (node, pnpm, just, jq)..."
+    mise trust . 2>/dev/null || true
+    if ! mise install; then
+        log_error "mise install failed — check .mise.toml"
+        exit 1
+    fi
+    log_success "mise toolchain ready"
+}
+
+# =============================================================================
 # Dependency Checks
 # =============================================================================
 
@@ -414,6 +435,7 @@ main() {
         fi
     fi
 
+    install_mise_tools
     check_dependencies
     clone_repos
     build_wasm_sdk
