@@ -31,7 +31,8 @@ Data is stored plaintext in the local database -- fully queryable and indexable.
 
 ### Prerequisites
 
-- [Git](https://git-scm.com/), [Rust](https://rustup.rs/), [Docker](https://www.docker.com/) (with Compose v2), [just](https://github.com/casey/just), [jq](https://jqlang.github.io/jq/), [Node.js](https://nodejs.org/) + [pnpm](https://pnpm.io/)
+- [Git](https://git-scm.com/), [Rust](https://rustup.rs/) (with the `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`), [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/), [Docker](https://www.docker.com/) (with Compose v2), [just](https://github.com/casey/just), [jq](https://jqlang.github.io/jq/), [python3](https://www.python.org/), [Node.js](https://nodejs.org/) + [pnpm](https://pnpm.io/)
+- macOS additionally needs LLVM's tools (`brew install llvm`) — the BSD `ar` cannot create WASM archives
 
 > Tested on macOS and Linux. Windows users should use WSL2.
 
@@ -48,7 +49,8 @@ just dev      # Start all services with hot reload
 <details>
 <summary>What <code>just setup</code> does</summary>
 
-- Clones `betterbase-accounts`, `betterbase-sync`, `betterbase-inference`, `betterbase`, and `betterbase-examples`
+- Clones `betterbase-accounts`, `betterbase-sync`, `betterbase-inference`, `betterbase`, `betterbase-examples`, and `json-joy-rs`
+- Builds the WASM SDK packages (`wasm-pack`) that the example apps bundle
 - Generates OPAQUE server keys for password authentication
 - Provisions CAP proof-of-work CAPTCHA credentials
 - Creates database passwords and HMAC keys
@@ -137,6 +139,7 @@ betterbase-dev/                        # You are here
 ├── betterbase-accounts/               # Rust (Axum): OPAQUE auth + OAuth 2.0 server
 ├── betterbase-sync/                   # Rust (Axum): encrypted blob sync + WebSocket
 ├── betterbase-inference/              # Rust (Axum): E2EE inference proxy (Tinfoil TEE)
+├── json-joy-rs/                       # CRDT library (path dependency of the SDK)
 ├── betterbase-examples/               # Example apps
 │   ├── launchpad/                     #   Portal (auth-only, no sync)
 │   ├── tasks/                         #   Offline-first todos with sync
@@ -227,7 +230,7 @@ Database credentials (`ACCOUNTS_DB_*`, `SYNC_DB_*`) are also in `.env`.
 
 ## Infrastructure
 
-**Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync); disabled in dev mode. **CAP** proof-of-work CAPTCHA. **PostgreSQL** for accounts and sync (separate databases). Dev volumes prefixed with `dev_` so `just dev-down -v` never deletes production data.
+**Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync); disabled in dev mode. **CAP** proof-of-work CAPTCHA (digest-pinned image, backed by a Redis-compatible **valkey** service). **PostgreSQL** for accounts and sync (separate databases). Dev volumes prefixed with `dev_` so `just dev-down -v` never deletes production data.
 
 ## Troubleshooting
 
@@ -236,6 +239,8 @@ Database credentials (`ACCOUNTS_DB_*`, `SYNC_DB_*`) are also in `.env`.
 **Port already in use** -- Another process is using a required port. Check with `lsof -i :5377` (or whichever port) and stop the conflicting process.
 
 **OPAQUE keygen fails** -- The setup compiles a Rust binary. Ensure you have a working Rust toolchain (`rustup update`). If compilation fails, check the error output for missing system dependencies.
+
+**WASM SDK build fails on macOS with undefined `sqlite3_*` symbols** -- macOS's BSD `ar` produces wasm archives the linker can't read. Install LLVM (`brew install llvm`); setup exports `AR_wasm32_unknown_unknown` automatically when it finds `llvm-ar`.
 
 **Sub-repo clone fails** -- If `just setup` fails cloning repositories, ensure you have internet access and can reach github.com. The setup uses HTTPS URLs which work without SSH key configuration.
 

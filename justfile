@@ -472,7 +472,7 @@ oauth-client-cmd *args:
     if {{dev_compose}} exec -T accounts test -f /app/oauth-client 2>/dev/null; then
         {{dev_compose}} exec -T -e "DATABASE_URL=$DB_URL" accounts /app/oauth-client {{args}}
     else
-        {{dev_compose}} exec -T -e "DATABASE_URL=$DB_URL" accounts cargo run --release -p betterbase-accounts-oauth-client -- {{args}}
+        {{dev_compose}} exec -T -e "DATABASE_URL=$DB_URL" -e "SQLX_OFFLINE=true" accounts cargo run --release -p betterbase-accounts-oauth-client -- {{args}}
     fi
 
 # Set up OAuth client for an example app

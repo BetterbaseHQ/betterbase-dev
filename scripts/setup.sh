@@ -42,6 +42,9 @@ check_dependencies() {
     command -v jq >/dev/null 2>&1 || missing+=("jq")
     command -v node >/dev/null 2>&1 || missing+=("node (https://nodejs.org)")
     command -v pnpm >/dev/null 2>&1 || missing+=("pnpm (https://pnpm.io)")
+    command -v python3 >/dev/null 2>&1 || missing+=("python3")
+    command -v wasm-pack >/dev/null 2>&1 || missing+=("wasm-pack (cargo install wasm-pack)")
+    command -v just >/dev/null 2>&1 || missing+=("just (https://github.com/casey/just)")
 
     if [ ${#missing[@]} -gt 0 ]; then
         log_error "Missing required dependencies: ${missing[*]}"
@@ -54,6 +57,31 @@ check_dependencies() {
     if ! docker info >/dev/null 2>&1; then
         log_error "Docker is not running. Please start Docker and try again."
         exit 1
+    fi
+
+    # WASM SDK build target
+    if ! rustup target list --installed 2>/dev/null | grep -q wasm32-unknown-unknown; then
+        log_error "Rust target wasm32-unknown-unknown is not installed."
+        echo "Install it with: rustup target add wasm32-unknown-unknown"
+        exit 1
+    fi
+
+    # macOS: wasm archives must be created with LLVM's ar. The BSD ar
+    # shipped with macOS silently produces archives the wasm linker can't
+    # read (undefined sqlite3_* symbols at link time).
+    if [ "$(uname)" = "Darwin" ]; then
+        LLVM_AR=""
+        if command -v llvm-ar >/dev/null 2>&1; then
+            LLVM_AR="$(command -v llvm-ar)"
+        elif [ -x /opt/homebrew/opt/llvm/bin/llvm-ar ]; then
+            LLVM_AR=/opt/homebrew/opt/llvm/bin/llvm-ar
+        fi
+        if [ -z "$LLVM_AR" ]; then
+            log_error "llvm-ar not found (required on macOS to build the WASM SDK)."
+            echo "Install it with: brew install llvm"
+            exit 1
+        fi
+        export AR_wasm32_unknown_unknown="$LLVM_AR"
     fi
 
     log_success "All dependencies found"
@@ -100,6 +128,47 @@ clone_repos() {
     else
         log_success "betterbase-examples already exists"
     fi
+
+    # Path dependency of betterbase-db (../../json-joy-rs) — the SDK
+    # workspace does not compile without it.
+    if [ ! -d json-joy-rs ]; then
+        log_info "Cloning json-joy-rs..."
+        git clone https://github.com/BetterbaseHQ/json-joy-rs.git
+    else
+        log_success "json-joy-rs already exists"
+    fi
+}
+
+# =============================================================================
+# WASM SDK Build
+# =============================================================================
+
+# Build the wasm-bindgen packages the example apps bundle. The example
+# Docker images COPY these pkg/ directories, so they must exist before the
+# first `just dev`.
+build_wasm_sdk() {
+    if [ -d betterbase/crates/betterbase-wasm/pkg ] && [ -d betterbase/crates/betterbase-db-wasm/pkg ]; then
+        log_success "WASM SDK packages already built"
+        return 0
+    fi
+
+    if [ ! -d betterbase ]; then
+        log_error "betterbase directory not found. Run setup without --skip-repos first."
+        exit 1
+    fi
+
+    log_info "Building WASM SDK packages (compiles Rust to wasm32 — may take a few minutes)..."
+
+    (cd betterbase/crates/betterbase-wasm && wasm-pack build --target bundler) || {
+        log_error "Failed to build betterbase-wasm"
+        exit 1
+    }
+    (cd betterbase/crates/betterbase-db-wasm && wasm-pack build --target bundler) || {
+        log_error "Failed to build betterbase-db-wasm"
+        exit 1
+    }
+
+    log_success "WASM SDK packages built"
 }
 
 # =============================================================================
@@ -347,6 +416,7 @@ main() {
 
     check_dependencies
     clone_repos
+    build_wasm_sdk
 
     # Initialize variables
     OPAQUE_SERVER_SETUP=""

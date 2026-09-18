@@ -1,0 +1,7 @@
+# Host build artifacts must never enter image build contexts — pnpm aborts
+# on foreign-platform node_modules dirs (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY)
+# and cargo contexts balloon with target/ dirs.
+**/node_modules
+**/target
+**/dist
+.pnpm-store
