@@ -1,0 +1,47 @@
+- generic [ref=f7e3]:
+  - banner [ref=f7e4]:
+    - generic [ref=f7e5]:
+      - generic [ref=f7e6]:
+        - link [ref=f7e7] [cursor=pointer]:
+          - /url: http://localhost:5380
+        - paragraph [ref=f7e13]: Betterbase
+      - generic [ref=f7e14]:
+        - paragraph [ref=f7e19]: Local
+        - button "Connect Sync" [ref=f7e20] [cursor=pointer]
+  - main [ref=f7e28]:
+    - generic [ref=f7e30]:
+      - link [ref=f7e31] [cursor=pointer]:
+        - /url: http://localhost:5381
+        - generic [ref=f7e32]:
+          - paragraph [ref=f7e39]: Betterbase Tasks
+          - paragraph [ref=f7e40]: Todo lists with offline-first sync
+      - link [ref=f7e41] [cursor=pointer]:
+        - /url: http://localhost:5382
+        - generic [ref=f7e42]:
+          - paragraph [ref=f7e49]: Betterbase Notes
+          - paragraph [ref=f7e50]: Rich text notes with CRDT merging
+      - link [ref=f7e51] [cursor=pointer]:
+        - /url: http://localhost:5383
+        - generic [ref=f7e52]:
+          - paragraph [ref=f7e60]: Betterbase Photos
+          - paragraph [ref=f7e61]: Photo gallery with encrypted file sync
+      - link [ref=f7e62] [cursor=pointer]:
+        - /url: http://localhost:5384
+        - generic [ref=f7e63]:
+          - paragraph [ref=f7e68]: Betterbase Board
+          - paragraph [ref=f7e69]: Collaborative kanban board
+      - link [ref=f7e70] [cursor=pointer]:
+        - /url: http://localhost:5385
+        - generic [ref=f7e71]:
+          - paragraph [ref=f7e77]: Betterbase Chat
+          - paragraph [ref=f7e78]: Real-time encrypted messaging
+      - generic [ref=f7e79]:
+        - generic [ref=f7e85]:
+          - paragraph [ref=f7e86]: Betterbase AI Chat
+          - paragraph [ref=f7e87]: Coming soon
+        - paragraph [ref=f7e88]: E2E encrypted AI conversations
+      - link [ref=f7e89] [cursor=pointer]:
+        - /url: http://localhost:5387
+        - generic [ref=f7e90]:
+          - paragraph [ref=f7e97]: Betterbase Passwords
+          - paragraph [ref=f7e98]: Encrypted password vault

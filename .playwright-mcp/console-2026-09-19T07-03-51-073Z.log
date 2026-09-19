@@ -1,0 +1,30 @@
+[     100ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:20102
+[     131ms] [ERROR] Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem. @ http://localhost:5380/node_modules/.vite/deps/@mantine_core.js?v=d9a2e665:3807
+[     133ms] [ERROR] Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem. @ http://localhost:5380/node_modules/.vite/deps/@mantine_core.js?v=d9a2e665:3807
+[     135ms] TypeError: Cannot read properties of null (reading 'useState')
+    at exports.useState (http://localhost:5380/node_modules/.vite/deps/@mantine_hooks.js?v=d9a2e665:960:35)
+    at useDisclosure (http://localhost:5380/node_modules/.vite/deps/@mantine_hooks.js?v=d9a2e665:2914:59)
+    at LessAppShell (http://localhost:5380/@fs/workspace/examples/shared/dist/index.js:494:8)
+    at Object.react_stack_bottom_frame (http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:18509:20)
+    at renderWithHooks (http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:5654:24)
+    at updateFunctionComponent (http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:7475:21)
+    at beginWork (http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:8525:20)
+    at runWithFiberInDEV (http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:997:72)
+    at performUnitOfWork (http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:12561:98)
+    at workLoopSync (http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:12424:43)
+[     134ms] [WARNING] %s
+
+%s
+ An error occurred in the <LessAppShell> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=d9a2e665:6965
+[  188868ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=33bda94c:20102
+[  204698ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5380/@vite/client:864
+[  206140ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=dc2b6d51:20102

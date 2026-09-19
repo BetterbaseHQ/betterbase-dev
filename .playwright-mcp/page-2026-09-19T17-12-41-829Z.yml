@@ -1,0 +1,47 @@
+- generic [ref=f12e3]:
+  - banner [ref=f12e4]:
+    - generic [ref=f12e5]:
+      - generic [ref=f12e6]:
+        - link [ref=f12e7] [cursor=pointer]:
+          - /url: http://localhost:5380
+        - paragraph [ref=f12e13]: Betterbase
+      - generic [ref=f12e14]:
+        - paragraph [ref=f12e19]: Local
+        - button "Connect Sync" [ref=f12e20] [cursor=pointer]
+  - main [ref=f12e28]:
+    - generic [ref=f12e30]:
+      - link [ref=f12e31] [cursor=pointer]:
+        - /url: http://localhost:5381
+        - generic [ref=f12e32]:
+          - paragraph [ref=f12e39]: Tasks
+          - paragraph [ref=f12e40]: Todo lists with offline-first sync
+      - link [ref=f12e41] [cursor=pointer]:
+        - /url: http://localhost:5382
+        - generic [ref=f12e42]:
+          - paragraph [ref=f12e49]: Notes
+          - paragraph [ref=f12e50]: Rich text notes with CRDT merging
+      - link [ref=f12e51] [cursor=pointer]:
+        - /url: http://localhost:5383
+        - generic [ref=f12e52]:
+          - paragraph [ref=f12e60]: Photos
+          - paragraph [ref=f12e61]: Photo gallery with encrypted file sync
+      - link [ref=f12e62] [cursor=pointer]:
+        - /url: http://localhost:5384
+        - generic [ref=f12e63]:
+          - paragraph [ref=f12e68]: Board
+          - paragraph [ref=f12e69]: Collaborative kanban board
+      - link [ref=f12e70] [cursor=pointer]:
+        - /url: http://localhost:5385
+        - generic [ref=f12e71]:
+          - paragraph [ref=f12e77]: Chat
+          - paragraph [ref=f12e78]: Real-time encrypted messaging
+      - generic [ref=f12e79]:
+        - generic [ref=f12e85]:
+          - paragraph [ref=f12e86]: AI Chat
+          - paragraph [ref=f12e87]: Coming soon
+        - paragraph [ref=f12e88]: E2E encrypted AI conversations
+      - link [ref=f12e89] [cursor=pointer]:
+        - /url: http://localhost:5387
+        - generic [ref=f12e90]:
+          - paragraph [ref=f12e97]: Passwords
+          - paragraph [ref=f12e98]: Encrypted password vault

@@ -1,0 +1,78 @@
+- generic [ref=f25e3]:
+  - banner [ref=f25e4]:
+    - generic [ref=f25e5]:
+      - generic [ref=f25e6]:
+        - link "Back to launchpad" [ref=f25e7] [cursor=pointer]:
+          - /url: http://localhost:5380
+        - paragraph [ref=f25e11]: Passwords
+      - generic [ref=f25e12]:
+        - paragraph [ref=f25e17]: Local
+        - button "Connect Sync" [ref=f25e18] [cursor=pointer]
+  - navigation [ref=f25e26]:
+    - generic [ref=f25e27]:
+      - paragraph [ref=f25e28]: Categories
+      - generic [ref=f25e29]:
+        - generic [ref=f25e30] [cursor=pointer]: All
+        - generic [ref=f25e36] [cursor=pointer]: Logins
+        - generic [ref=f25e42] [cursor=pointer]: Cards
+        - generic [ref=f25e47] [cursor=pointer]: Secure Notes
+        - generic [ref=f25e53] [cursor=pointer]: Identities
+  - main [ref=f25e59]:
+    - generic [ref=f25e83]:
+      - paragraph [ref=f25e84]: New Password
+      - generic [ref=f25e86]:
+        - generic [ref=f25e87]:
+          - generic [ref=f25e88]: Category
+          - textbox "Category" [ref=f25e90] [cursor=pointer]: Login
+        - generic [ref=f25e91]:
+          - generic [ref=f25e92]: Site *
+          - textbox "Site" [ref=f25e94]:
+            - /placeholder: GitHub
+        - generic [ref=f25e95]:
+          - generic [ref=f25e96]: URL
+          - textbox "URL" [ref=f25e98]:
+            - /placeholder: https://github.com
+        - generic [ref=f25e99]:
+          - generic [ref=f25e100]: Username
+          - textbox "Username" [ref=f25e102]:
+            - /placeholder: user@example.com
+        - generic [ref=f25e103]:
+          - generic [ref=f25e104]: Password
+          - generic [ref=f25e105]:
+            - textbox "Password" [ref=f25e106]
+            - button "Show password" [ref=f25e108] [cursor=pointer]
+        - generic [ref=f25e114]:
+          - paragraph [ref=f25e115]: Password Generator
+          - generic [ref=f25e116]:
+            - paragraph [ref=f25e117]: "%,-Yj!}W2&.cCVwxXfDQ"
+            - button "Regenerate password" [ref=f25e118] [cursor=pointer]
+            - button "Copy to clipboard" [ref=f25e125] [cursor=pointer]
+          - generic [ref=f25e130]:
+            - paragraph [ref=f25e131]: 20 chars
+            - generic "Password length" [ref=f25e132]:
+              - slider [ref=f25e136] [cursor=pointer]
+          - generic [ref=f25e137]:
+            - generic [ref=f25e139]:
+              - switch "a-z" [checked]
+              - generic [aria-hidden] [ref=f25e140] [cursor=pointer]
+              - generic [ref=f25e143] [cursor=pointer]: a-z
+            - generic [ref=f25e146]:
+              - switch "A-Z" [checked]
+              - generic [aria-hidden] [ref=f25e147] [cursor=pointer]
+              - generic [ref=f25e150] [cursor=pointer]: A-Z
+            - generic [ref=f25e153]:
+              - switch "0-9" [checked]
+              - generic [aria-hidden] [ref=f25e154] [cursor=pointer]
+              - generic [ref=f25e157] [cursor=pointer]: 0-9
+            - generic [ref=f25e160]:
+              - switch "!@#" [checked]
+              - generic [aria-hidden] [ref=f25e161] [cursor=pointer]
+              - generic [ref=f25e164] [cursor=pointer]: "!@#"
+          - button "Use this password" [ref=f25e166] [cursor=pointer]
+        - generic [ref=f25e169]:
+          - generic [ref=f25e170]: Notes
+          - textbox "Notes" [ref=f25e172]:
+            - /placeholder: Additional details...
+      - generic [ref=f25e173]:
+        - button "Create" [disabled] [ref=f25e174]
+        - button "Cancel" [ref=f25e177] [cursor=pointer]

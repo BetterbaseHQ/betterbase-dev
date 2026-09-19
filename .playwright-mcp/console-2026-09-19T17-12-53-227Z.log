@@ -1,0 +1,12 @@
+[     100ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5381/node_modules/.vite/deps/react-dom_client.js?v=84b33bd0:20102
+[  227956ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=dc2b6d51:20102
+[  253726ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5383/node_modules/.vite/deps/react-dom_client.js?v=4ada1369:20102
+[  255797ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=dc2b6d51:20102
+[  256950ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5384/node_modules/.vite/deps/react-dom_client.js?v=bc7b4e14:20102
+[  256999ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5384/favicon.ico:0
+[  259875ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=dc2b6d51:20102
+[  263374ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5385/node_modules/.vite/deps/react-dom_client.js?v=dfa15586:20102
+[  263421ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5385/favicon.ico:0
+[  265955ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=dc2b6d51:20102
+[  267091ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5387/node_modules/.vite/deps/react-dom_client.js?v=61aa2816:20102
+[  271500ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5380/node_modules/.vite/deps/react-dom_client.js?v=dc2b6d51:20102

@@ -1,0 +1,58 @@
+- generic [ref=f24e3]:
+  - banner [ref=f24e4]:
+    - generic [ref=f24e5]:
+      - generic [ref=f24e6]:
+        - link "Back to launchpad" [ref=f24e7] [cursor=pointer]:
+          - /url: http://localhost:5380
+        - paragraph [ref=f24e9]: Board
+      - generic [ref=f24e10]:
+        - paragraph [ref=f24e15]: Local
+        - button "Connect Sync" [ref=f24e16] [cursor=pointer]
+  - navigation [ref=f24e24]:
+    - generic [ref=f24e25]:
+      - generic [ref=f24e26]:
+        - paragraph [ref=f24e27]: Boards
+        - button "New board" [ref=f24e28] [cursor=pointer]
+      - generic [ref=f24e31] [cursor=pointer]:
+        - generic [ref=f24e38]: My Board
+        - generic [ref=f24e40]:
+          - paragraph [ref=f24e41]: "1"
+          - button "Delete board My Board" [ref=f24e42]
+  - main [ref=f24e47]:
+    - generic [ref=f24e49]:
+      - paragraph [ref=f24e51]: My Board
+      - generic [ref=f24e52]:
+        - generic [ref=f24e53]:
+          - generic [ref=f24e54]:
+            - generic [ref=f24e55]:
+              - button "Rename column To Do" [ref=f24e56] [cursor=pointer]: To Do
+              - paragraph [ref=f24e57]: "1"
+            - generic [ref=f24e58]:
+              - button "Add card to To Do" [ref=f24e59] [cursor=pointer]
+              - button "Delete column To Do" [ref=f24e62] [cursor=pointer]
+          - button [ref=f24e133]:
+            - paragraph [ref=f24e134]: Ship the review fixes
+            - generic [ref=f24e135]:
+              - button "Add description" [ref=f24e136] [cursor=pointer]
+              - button "Set card color" [ref=f24e139] [cursor=pointer]
+              - button "Delete card Ship the review fixes" [ref=f24e147] [cursor=pointer]
+          - button "Add card" [ref=f24e152] [cursor=pointer]
+        - generic [ref=f24e73]:
+          - generic [ref=f24e74]:
+            - generic [ref=f24e75]:
+              - button "Rename column In Progress" [ref=f24e76] [cursor=pointer]: In Progress
+              - paragraph [ref=f24e77]: "0"
+            - generic [ref=f24e78]:
+              - button "Add card to In Progress" [ref=f24e79] [cursor=pointer]
+              - button "Delete column In Progress" [ref=f24e82] [cursor=pointer]
+          - button "Add card" [ref=f24e88] [cursor=pointer]
+        - generic [ref=f24e93]:
+          - generic [ref=f24e94]:
+            - generic [ref=f24e95]:
+              - button "Rename column Done" [ref=f24e96] [cursor=pointer]: Done
+              - paragraph [ref=f24e97]: "0"
+            - generic [ref=f24e98]:
+              - button "Add card to Done" [ref=f24e99] [cursor=pointer]
+              - button "Delete column Done" [ref=f24e102] [cursor=pointer]
+          - button "Add card" [ref=f24e108] [cursor=pointer]
+        - button "Add column" [ref=f24e113] [cursor=pointer]
