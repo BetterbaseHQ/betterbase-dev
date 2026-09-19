@@ -45,6 +45,9 @@ services:
     ports:
       - "5377:5377"  # accounts (rate-limited)
       - "5379:5379"  # sync (rate-limited)
+    volumes:
+      # Config is mounted, not baked: edits apply after `docker compose restart caddy`
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     depends_on:
       accounts:
         condition: service_healthy
