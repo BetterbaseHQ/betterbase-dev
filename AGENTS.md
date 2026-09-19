@@ -64,14 +64,18 @@ Per-repo development checks live in each repo (`cd betterbase-accounts && just c
 ## E2E Testing
 
 ```bash
-just e2e-setup    # Start e2e services + create OAuth clients + write e2e/.env
+just e2e-setup    # Start e2e services + exchange federation keys + create OAuth clients
 just e2e-test     # Run Playwright tests (services must be running via e2e-setup)
+just e2e          # Full cycle: clean → setup → test
 just e2e-down     # Stop e2e services
+just e2e-clean    # Stop e2e services + remove volumes (never touches dev/prod)
 ```
 
-**Warning:** `just e2e` runs `e2e-clean` first, which runs `docker compose down -v` on the *shared* compose project — this wipes dev volumes too. Prefer `just e2e-setup` + `just e2e-test`.
+The e2e stack is a **standalone compose project** (`e2e/compose.yaml`, project name `betterbase-e2e`) — separate containers, network, and volumes from dev/prod. It uses ports 25377 (accounts), 25379 (sync), 25387 (accounts-b), 25389 (sync-b), and the vite test harness on 25390. It is safe to run `just e2e` while dev is up; neither stack can affect the other's containers or data.
 
-The e2e stack shares the dev compose project and recreates accounts/sync with e2e ports; run `just dev` afterwards to restore normal dev ports.
+All e2e runtime config lives in `e2e/.env.docker` (gitignored): `e2e-up` writes the Server B OPAQUE key, `e2e-setup` writes the federation peer trust pins (Server A ↔ Server B). E2e recipes never mutate the shared root `.env`.
+
+Sync signing keys are provisioned on first boot and stable across restarts — the entrypoint never rotates the primary key, so pinned trust survives container restarts.
 
 ## Architecture
 

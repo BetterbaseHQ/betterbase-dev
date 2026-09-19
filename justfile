@@ -2,7 +2,11 @@
 # Dev volumes are prefixed with dev_ so dev-down -v can never delete prod data.
 prod_compose := "docker compose -f docker-compose.yml"
 dev_compose  := "docker compose -f docker-compose.yml -f docker-compose.dev.yml"
-e2e_compose  := "docker compose -f docker-compose.yml -f docker-compose.e2e.yml"
+# E2E is a standalone compose project (`name: betterbase-e2e` in the file), so
+# it owns its own containers/network/volumes and can run alongside dev.
+# Interpolation: root .env holds shared secrets; e2e/.env.docker (written by
+# `just e2e-setup`) holds e2e-only federation pins.
+e2e_compose  := "docker compose --project-directory . --env-file .env --env-file e2e/.env.docker -f e2e/compose.yaml"
 
 # List available recipes
 default:
@@ -69,9 +73,9 @@ up-build:
     fi
     {{prod_compose}} up -d --build
 
-# Stop all services (dev or prod, whichever is running)
+# Stop all services (dev, prod, and e2e, whichever are running)
 down:
-    {{dev_compose}} down 2>/dev/null; {{prod_compose}} down 2>/dev/null; true
+    {{dev_compose}} down 2>/dev/null; {{prod_compose}} down 2>/dev/null; [ -f e2e/.env.docker ] && {{e2e_compose}} down 2>/dev/null; true
 
 # Run checks on all repos (SDK, accounts, sync, examples)
 check-all:
@@ -395,9 +399,14 @@ restart-service service:
 ps:
     {{dev_compose}} ps
 
-# Remove all dev containers and images (full reset)
+# Remove all dev containers and images (full reset, includes e2e)
 nuke:
+    #!/usr/bin/env bash
+    set -e
     {{dev_compose}} down -v --rmi local
+    just _ensure-e2e-env
+    {{e2e_compose}} down -v --rmi local || true
+    rm -f e2e/.env.docker
 
 # =============================================================================
 # Health & Status
@@ -520,9 +529,43 @@ setup-examples:
 
 # =============================================================================
 # E2E Tests (Playwright browser tests)
+#
+# The e2e stack is a separate compose project (`betterbase-e2e`) — it can run
+# at the same time as dev without either side disturbing the other.
 # =============================================================================
 
-# Start e2e services (isolated from dev/prod)
+# Ensure e2e/.env.docker exists (compose --env-file requires it to be present;
+# e2e-up adds the Server B OPAQUE key, e2e-setup adds federation trusted keys)
+[private]
+_ensure-e2e-env:
+    #!/usr/bin/env bash
+    set -e
+    if [ ! -f e2e/.env.docker ]; then
+        printf '# Generated e2e runtime config (e2e-up: Server B OPAQUE key;\n# e2e-setup: federation trusted keys). Safe to delete; regenerated as needed.\n' > e2e/.env.docker
+    fi
+
+# Poll a health endpoint; dump container logs on failure instead of hanging forever
+[private]
+_e2e-wait url service:
+    #!/usr/bin/env bash
+    set -e
+    echo "Waiting for {{service}}..."
+    TRIES=0
+    MAX_TRIES=120
+    until curl -sf "{{url}}" > /dev/null 2>&1; do
+        TRIES=$((TRIES + 1))
+        if [ "$TRIES" -ge "$MAX_TRIES" ]; then
+            echo "Error: {{service}} did not become healthy after ${MAX_TRIES}s"
+            echo "Container logs:"
+            just _ensure-e2e-env
+            {{e2e_compose}} logs --tail 30 {{service}} 2>&1 || true
+            exit 1
+        fi
+        sleep 1
+    done
+    echo "{{service}} is healthy"
+
+# Start e2e services (isolated compose project — safe to run alongside dev)
 e2e-up:
     #!/usr/bin/env bash
     set -e
@@ -530,46 +573,63 @@ e2e-up:
         echo "No .env found, running setup..."
         ./scripts/setup.sh
     fi
-    # Generate Server B OPAQUE keys if not already set
-    if ! grep -q "^OPAQUE_SERVER_SETUP_B=.\+" .env 2>/dev/null; then
+    just _ensure-e2e-env
+    # Generate Server B OPAQUE keys if not already set (e2e-only secret —
+    # lives in e2e/.env.docker, never in the shared root .env)
+    if ! grep -q "^OPAQUE_SERVER_SETUP_B=.\+" e2e/.env.docker 2>/dev/null; then
         echo "Generating OPAQUE keys for Server B..."
         SETUP_B=$(cd ./betterbase-accounts && SQLX_OFFLINE=true cargo run --release -p betterbase-accounts-keygen)
-        echo "" >> .env
-        echo "# Server B (federation e2e)" >> .env
-        echo "OPAQUE_SERVER_SETUP_B=$SETUP_B" >> .env
+        echo "OPAQUE_SERVER_SETUP_B=$SETUP_B" >> e2e/.env.docker
         echo "Server B OPAQUE keys generated"
     fi
     {{e2e_compose}} up -d --build
 
 # Stop e2e services
 e2e-down:
+    #!/usr/bin/env bash
+    set -e
+    just _ensure-e2e-env
     {{e2e_compose}} down
 
-# Stop e2e services and remove volumes (clean slate)
+# Stop e2e services and remove volumes (clean slate). Never touches dev/prod.
+# Also drops e2e/.env.docker — its federation pins and Server B OPAQUE key
+# belong to the wiped volumes and are regenerated on the next e2e-up/setup.
 e2e-clean:
+    #!/usr/bin/env bash
+    set -e
+    just _ensure-e2e-env
     {{e2e_compose}} down -v
+    rm -f e2e/.env.docker
 
 # View e2e service logs
 e2e-logs *args:
+    #!/usr/bin/env bash
+    set -e
+    just _ensure-e2e-env
     {{e2e_compose}} logs -f {{args}}
 
-# One-time setup: start services, create OAuth clients, write e2e/.env
+# Set up e2e stack: start services, exchange federation keys, create OAuth
+# clients, write e2e/.env. Idempotent — safe to re-run any time.
 e2e-setup:
     #!/usr/bin/env bash
     set -e
     echo "Starting e2e services..."
+    # Migration: older e2e recipes wrote these into the shared root .env, where
+    # they could shadow the fresh e2e/.env.docker values (later env-file wins,
+    # but stale entries resurface whenever e2e-clean recreates the file).
+    if [ -f .env ]; then
+        sed -i.bak -e '/^FEDERATION_TRUSTED_KEYS_/d' -e '/^OPAQUE_SERVER_SETUP_B=/d' -e '/^# Server B (federation e2e)$/d' .env && rm -f .env.bak
+    fi
     just e2e-up
-    echo "Waiting for Server A..."
-    until curl -sf http://localhost:25377/health > /dev/null 2>&1; do sleep 1; done
-    until curl -sf http://localhost:25379/health > /dev/null 2>&1; do sleep 1; done
-    echo "Waiting for Server B..."
-    until curl -sf http://localhost:25387/health > /dev/null 2>&1; do sleep 1; done
-    until curl -sf http://localhost:25389/health > /dev/null 2>&1; do sleep 1; done
-    echo "All services healthy"
+    just _e2e-wait http://localhost:25377/health accounts
+    just _e2e-wait http://localhost:25379/health sync
+    just _e2e-wait http://localhost:25387/health accounts-b
+    just _e2e-wait http://localhost:25389/health sync-b
 
     # ---- Federation key exchange ----
-    # Each sync server generated a signing key on startup (via FEDERATION_DOMAIN).
-    # Now we fetch each server's public key and configure the peer to trust it.
+    # Each sync server provisioned a signing key on first boot (stable across
+    # restarts — the entrypoint never rotates the primary). Fetch each public
+    # key and pin it on the peer via FEDERATION_TRUSTED_KEYS.
     echo "Exchanging federation keys..."
 
     # Helper: extract trusted_keys_entry from a JWKS endpoint
@@ -581,7 +641,7 @@ e2e-setup:
             echo "Error: Could not fetch JWKS from $URL" >&2
             return 1
         fi
-        # Extract kid and x (public key) from the first key in the JWKS
+        # Extract kid and x (public key) from the primary (first) key in the JWKS
         echo "$JWKS" | python3 -c "import sys,json; k=json.load(sys.stdin)['keys'][0]; print(k['kid']+'='+k['x'])"
     }
 
@@ -598,19 +658,18 @@ e2e-setup:
     echo "Server A kid: $(echo "$KEY_A" | cut -d= -f1)"
     echo "Server B kid: $(echo "$KEY_B" | cut -d= -f1)"
 
-    # Persist trusted keys to .env so docker-compose picks them up on restart
-    # Server A trusts Server B's key, and vice versa
-    sed -i.bak '/^FEDERATION_TRUSTED_KEYS_/d' .env && rm -f .env.bak
-    echo "FEDERATION_TRUSTED_KEYS_A=$KEY_B" >> .env
-    echo "FEDERATION_TRUSTED_KEYS_B=$KEY_A" >> .env
+    # Persist trusted keys to e2e/.env.docker so compose picks them up on restart
+    # (Server A trusts Server B's key, and vice versa)
+    sed -i.bak '/^FEDERATION_TRUSTED_KEYS_/d' e2e/.env.docker && rm -f e2e/.env.docker.bak
+    echo "FEDERATION_TRUSTED_KEYS_A=$KEY_B" >> e2e/.env.docker
+    echo "FEDERATION_TRUSTED_KEYS_B=$KEY_A" >> e2e/.env.docker
 
-    # Restart sync services to pick up peer trusted keys
-    {{e2e_compose}} stop sync sync-b
-    {{e2e_compose}} up -d sync sync-b
+    # Recreate sync services to pick up peer trusted keys (env is read at startup)
+    just _ensure-e2e-env
+    {{e2e_compose}} up -d --force-recreate sync sync-b
 
-    echo "Waiting for sync services to restart..."
-    until curl -sf http://localhost:25379/health > /dev/null 2>&1; do sleep 1; done
-    until curl -sf http://localhost:25389/health > /dev/null 2>&1; do sleep 1; done
+    just _e2e-wait http://localhost:25379/health sync
+    just _e2e-wait http://localhost:25389/health sync-b
     echo "Federation key exchange complete"
 
     # Helper: ensure OAuth client exists on a given accounts service
@@ -668,11 +727,11 @@ e2e-setup:
     sed -i.bak 's/^    //' e2e/.env && rm -f e2e/.env.bak
     echo "e2e/.env written"
 
-# Run e2e tests (pass -x to stop on first failure)
+# Run e2e tests (services must be running via e2e-setup; pass -x to stop on first failure)
 e2e-test *args:
-    cd e2e && pnpm test {{args}}
+    cd e2e && E2E_COMPOSE="{{e2e_compose}}" pnpm test {{args}}
 
-# Full E2E cycle: clean → setup → run tests (pass -x to stop on first failure)
+# Full E2E cycle: clean → setup → run tests. Safe to run while dev is up.
 e2e *args:
     #!/usr/bin/env bash
     set -e

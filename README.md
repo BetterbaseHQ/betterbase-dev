@@ -150,10 +150,10 @@ betterbase-dev/                        # You are here
 │   ├── board/                         #   Collaborative board
 │   ├── chat/                          #   Encrypted messaging
 │   └── shared/                        #   @betterbase/examples-shared
-├── e2e/                               # Playwright browser tests (isolated stack)
+├── e2e/                               # Playwright browser tests (isolated compose project)
+│   └── compose.yaml                   # E2E test stack (own project + ports 253xx)
 ├── docker-compose.yml                 # Production services
 ├── docker-compose.dev.yml             # Dev overrides (hot reload, debug ports)
-├── docker-compose.e2e.yml             # E2E test stack (isolated ports)
 └── caddy/                             # Reverse proxy config + rate limiting
 ```
 

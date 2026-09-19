@@ -78,7 +78,11 @@ const ACCOUNTS_URL = "http://localhost:25377";
 const ACCOUNTS_URL_B = "http://localhost:25387";
 const CLIENT_ID_B = process.env.VITE_OAUTH_CLIENT_ID_B || "";
 const DOMAIN_B = process.env.VITE_DOMAIN_B || "localhost:25387";
-const COMPOSE_CMD = "docker compose -f docker-compose.yml -f docker-compose.e2e.yml";
+// Matches the e2e_compose variable in the root justfile (exported as E2E_COMPOSE
+// by `just e2e-test`). Must target the isolated betterbase-e2e compose project.
+const COMPOSE_CMD =
+  process.env.E2E_COMPOSE ??
+  "docker compose --project-directory . --env-file .env --env-file e2e/.env.docker -f e2e/compose.yaml";
 const PROJECT_ROOT = new URL("../../", import.meta.url).pathname;
 
 /**
