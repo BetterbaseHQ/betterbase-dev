@@ -10,7 +10,7 @@ Each component is a separate git repo checked out as a subdirectory here, with i
 
 | Directory | What it is |
 |---|---|
-| `betterbase/` | Rust/WASM SDK (Cargo workspace + TypeScript layer in `js/`, published as `@betterbase/sdk`) |
+| `betterbase/` | Rust/WASM SDK (Cargo workspace + TypeScript layer in `js/`, published as `betterbase`) |
 | `betterbase-accounts/` | Auth service — Axum, OPAQUE + OAuth 2.0, React web UI (port 5377) |
 | `betterbase-sync/` | Blob sync service — Axum, WebSocket RPC + CBOR, encrypted blobs (port 5379) |
 | `betterbase-inference/` | E2EE inference proxy — Axum, forwards to Tinfoil TEE |
