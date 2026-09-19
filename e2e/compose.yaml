@@ -32,7 +32,11 @@ services:
     volumes:
       - accounts_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${ACCOUNTS_DB_USER:-accounts} -d ${ACCOUNTS_DB_NAME:-accounts}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${ACCOUNTS_DB_USER:-accounts} -d ${ACCOUNTS_DB_NAME:-accounts}",
+        ]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -124,7 +128,11 @@ services:
     volumes:
       - accounts_db_b_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${ACCOUNTS_DB_USER:-accounts} -d ${ACCOUNTS_DB_NAME:-accounts}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${ACCOUNTS_DB_USER:-accounts} -d ${ACCOUNTS_DB_NAME:-accounts}",
+        ]
       interval: 5s
       timeout: 3s
       retries: 5

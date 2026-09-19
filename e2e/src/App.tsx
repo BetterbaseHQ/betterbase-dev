@@ -47,8 +47,8 @@ function getConfig(): AppConfig {
 interface AuthContextValue {
   session: import("betterbase/auth").AuthSession | null;
   getToken: () => Promise<string | null>;
-  encryptionKey: Uint8Array | null;
-  epochKey: Uint8Array | null;
+  encryptionKey: CryptoKey | null;
+  epochKey: CryptoKey | null;
   personalSpaceId: string | null;
   keypair: { privateKeyJwk: JsonWebKey; publicKeyJwk: JsonWebKey } | null;
   isAuthenticated: boolean;

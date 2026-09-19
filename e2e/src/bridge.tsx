@@ -147,7 +147,7 @@ interface TestBridgeProps {
   auth: {
     isAuthenticated: boolean;
     personalSpaceId: string | null;
-    encryptionKey: Uint8Array | null;
+    encryptionKey: CryptoKey | null;
     keypair: { privateKeyJwk: JsonWebKey; publicKeyJwk: JsonWebKey } | null;
   };
 }
