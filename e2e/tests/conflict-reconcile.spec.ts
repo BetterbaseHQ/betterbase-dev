@@ -97,15 +97,36 @@ test.describe("Conflict reconciliation — offline divergence", () => {
     await bridge(pageA, (api, a) => api.patch("items", { id: a.id, title: "From A" }), { id: itemId });
     await bridge(pageA, (api) => api.put("items", { title: "A-new", value: 1, tags: ["a"] }));
 
-    // --- Back online: reconcile (A pushes, B pulls+pushes, A pulls, B confirms) ---
+    // --- Back online: reconcile ---
+    // Reconnect triggers the engine's auto-sync, which can race the explicit
+    // syncs below (two concurrent sync rounds on one device interleave
+    // markSynced with applyRemoteChanges). The fixed rounds below drive the
+    // reconcile; the poll then waits for both devices to settle on the
+    // converged state rather than asserting mid-flight.
     await context.setOffline(false);
     await syncDevice(pageA);
     await syncDevice(pageB);
     await syncDevice(pageA);
     await syncDevice(pageB);
 
-    const stateA = await readAll(pageA);
-    const stateB = await readAll(pageB);
+    const converged = async () => {
+      const [a, b] = [await readAll(pageA), await readAll(pageB)];
+      const ok =
+        a.notes[0]?.body?.includes("A was here —") === true &&
+        a.notes[0]?.body?.includes("— B was here.") === true &&
+        b.notes[0]?.body === a.notes[0]?.body;
+      return ok ? { a, b } : null;
+    };
+    const deadline = Date.now() + 30_000;
+    let states: Awaited<ReturnType<typeof converged>> = null;
+    while (Date.now() < deadline) {
+      states = await converged();
+      if (states) break;
+      await syncDevice(pageA);
+      await syncDevice(pageB);
+    }
+    expect(states, "both devices converge on the merged state").not.toBeNull();
+    const { a: stateA, b: stateB } = states!;
 
     // --- Assertions on BOTH devices ---
     for (const [label, state] of [
