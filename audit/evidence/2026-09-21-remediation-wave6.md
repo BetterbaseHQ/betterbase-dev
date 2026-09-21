@@ -40,3 +40,23 @@ User selected: **per-account DBs + retained anonymous namespace**. Anonymous/loc
 - photos App test renamed `.ts`→`.tsx` (JSX probe); unique record ids per test (tombstones persist within a file).
 
 Wave-6 review round: pending (to be appended).
+
+## Review results (appended after completion)
+
+One code-reviewer agent covered all three repos' wave-6 deltas with empirical checks. Verdicts: AUD-027 **pass**, AUD-036 **pass**, AUD-052 **pass (clean)**, AUD-048 **pass** (one minor), AUD-047 **pass with follow-ups**, AUD-045 **partial** — all follow-ups fixed in the review round:
+
+- **IMPORTANT — board strays patched in place never reached invitees (S5):** a personal-space stray (e.g. a card added from a second device mid-share) patched in place syncs only within the sharer's personal space — invisible to the invitee, the finding's harm scoped to peer views. Fixed: strays outside the target space are MOVED into it; shared-space strays still patch. Fake-db branch test (the raw adapter cannot attach `_spaceId` to schema-validated records).
+- **IMPORTANT — photo bytes un-isolated and actively migrated across accounts (S9):** one origin-wide FileStore meant A→B connect migrated A's cached plaintext blobs and A's pending queue entries into B's space partition; local-only puts after logout landed under the last account's partition. Fixed: the FileStore is created inside the scope-keyed subtree with a per-account cache database and disposed on unmount.
+- **IMPORTANT — worker/coordinator leak per scope switch (S10):** the displaced Database was never closed. Fixed with a deferred close (10s) — immediate close empirically contended with rapid same-name reopens through the OPFS handle (stalled reopens in the test suite).
+- Ghost-board state (S6): a crash between persist-id and tombstone left the old board alive forever — recovery now always tombstones it (new regression).
+- Adoption hardening (S7): createdAt AND name matching, refuse on ambiguity. Completion serialization (S8a): reconciler vs share vs StrictMode could double-create the board. `loadMarkers` index-shift (S8b) and unresolvable-marker churn (S8c) fixed. Remap-on-merged-record bug in the move branch found and fixed during the round.
+- Disconnected stale-pin (S2): the reset now also runs from eviction, so a device that never reconnects still un-pins. O(n²) reset notifications (S3) batched. Thumbnail-eviction gap in import compensation (S4) fixed. `useDbScope` failure path surfaces an error with reload instead of an infinite loader; superseded-open assignment guarded (S11). Doc drift `name::<hash>` → `name_<hash>` (S12).
+- **Accepted residuals, documented rather than fixed:** (a) *torn bytes/DEK pairing* (S1, server, MINOR): with two concurrent uploads of the same file id and different DEKs, store-order ≠ record-order can pair one request's ciphertext with the other's wrapper — every download then fails GCM auth; recovery is delete-and-reupload. Reachable only through millisecond server interleaving inside an already-rare race (e.g. the AUD-036 reset racing a stalled live uploader — the wave's "race is safe" claim was corrected accordingly). Proper fix is a client-sent ciphertext hash verified on conflict (a backward-compatible optional header); deferred as a v1.x hardening item. (b) Same-millisecond adoption collisions are theoretically possible but not realistically reachable (human-paced board creation); the hardened matcher refuses rather than guesses.
+
+## Final e2e (after all review fixes)
+
+Main phase **125 passed + 3 gated-skips (4.4m)**, fault-injection **3/3 (50.2s)**.
+
+Wave-6 commits (final): betterbase-sync `040ebcb`; betterbase `2d0fd71`, `dd00ad1`, `f60ad60`, `8b01dcb`; betterbase-examples `a130637`, `221d7d5`, `06aa06a`, `7726b6b`, `662dff8`.
+
+Register: **37/60**. Wave 6 complete.
