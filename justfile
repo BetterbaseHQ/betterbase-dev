@@ -742,6 +742,12 @@ e2e-setup:
 e2e-test *args:
     cd e2e && E2E_COMPOSE="{{e2e_compose}}" pnpm test {{args}}
 
+# Fault-injection phase: real server restarts against the e2e stack.
+# Runs single-worker (restarts would disturb parallel tests). Stack must be
+# up via `just e2e-setup`; included automatically in `just e2e`.
+e2e-faults *args:
+    cd e2e && E2E_COMPOSE="{{e2e_compose}}" E2E_FAULT_INJECTION=1 PW_WORKERS=1 pnpm test tests/fault-injection.spec.ts {{args}}
+
 # Full E2E cycle: clean → setup → run tests. Safe to run while dev is up.
 e2e *args:
     #!/usr/bin/env bash
@@ -749,3 +755,4 @@ e2e *args:
     just e2e-clean 2>/dev/null || true
     just e2e-setup
     just e2e-test {{args}}
+    just e2e-faults

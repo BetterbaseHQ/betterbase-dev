@@ -66,7 +66,8 @@ Per-repo development checks live in each repo (`cd betterbase-accounts && just c
 ```bash
 just e2e-setup    # Start e2e services + exchange federation keys + create OAuth clients
 just e2e-test     # Run Playwright tests (services must be running via e2e-setup)
-just e2e          # Full cycle: clean → setup → test
+just e2e-faults   # Fault-injection phase: real server restarts (single worker, gated spec)
+just e2e          # Full cycle: clean → setup → test → faults
 just e2e-down     # Stop e2e services
 just e2e-clean    # Stop e2e services + remove volumes (never touches dev/prod)
 ```
@@ -74,6 +75,8 @@ just e2e-clean    # Stop e2e services + remove volumes (never touches dev/prod)
 The e2e stack is a **standalone compose project** (`e2e/compose.yaml`, project name `betterbase-e2e`) — separate containers, network, and volumes from dev/prod. It uses ports 25377 (accounts), 25379 (sync), 25387 (accounts-b), 25389 (sync-b), and the vite test harness on 25390. It is safe to run `just e2e` while dev is up; neither stack can affect the other's containers or data.
 
 All e2e runtime config lives in `e2e/.env.docker` (gitignored): `e2e-up` writes the Server B OPAQUE key, `e2e-setup` writes the federation peer trust pins (Server A ↔ Server B). E2e recipes never mutate the shared root `.env`.
+
+The fault-injection spec (`e2e/tests/fault-injection.spec.ts`) restarts real containers (sync/accounts) to pin crash-safety (D-005 share persistence, offline-key adoption, stateless auth across restarts). It is gated behind `E2E_FAULT_INJECTION=1` and runs single-worker via `just e2e-faults` because restarts would disturb parallel tests; `just e2e` runs it automatically after the main phase.
 
 Sync signing keys are provisioned on first boot and stable across restarts — the entrypoint never rotates the primary key, so pinned trust survives container restarts.
 

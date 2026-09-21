@@ -153,3 +153,38 @@ Commits this round: betterbase-accounts (fail-closed + tests),
 betterbase-sync (canonical broadcast, parked arm, broker-backed tests,
 file CAS test), betterbase (transient classification fix, CryptoKey CAS,
 deferred follow-up, consolidation + tests), betterbase-dev (this record).
+
+## E2E hardening (same day, follow-up)
+
+Assessment: the suite (121 tests) was green at baseline while all 60 audit
+findings existed — strong on collaboration happy paths, absent on fault
+injection and adversarial coverage. Three gaps filled:
+
+- `e2e/tests/adversarial.spec.ts` (2 tests): removed member's writes never
+  reach the space across repeated convergence cycles (positive controls:
+  their personal space and the admin's writes keep working); a non-member's
+  writes into a foreign space never reach its members.
+- `e2e/tests/network-partition.spec.ts` (2 tests): true network cuts via
+  `context.setOffline` (vs calamity's simulate-by-not-syncing) — cut during
+  an in-flight sync and repeated partition cycles both converge loss-free
+  and duplicate-free.
+- `e2e/tests/fault-injection.spec.ts` (3 tests, gated): real container
+  restarts — sync restart preserves data and sessions; **offline member
+  adopts a fresh rotation key across a sync restart (the first e2e pin of
+  D-005 share persistence + pull-based adoption)**; accounts restart keeps
+  existing sessions syncing (stateless JWKS validation). Gated behind
+  `E2E_FAULT_INJECTION=1`, runs single-worker via the new `just
+  e2e-faults`; `just e2e` now runs it after the main phase.
+
+New behavior observations recorded for the audit register (not new
+findings yet — candidates for wave 3/4 triage):
+
+1. **In-flight `sync()` never settles when the network is cut mid-cycle**
+   (no WS connect timeout): observed in network-partition testing; the
+   test races the cycle instead of awaiting it.
+2. **Revoked/non-member push rejections are silent client-side**: the
+   server rejects (delivery enforcement holds — verified), but the SDK
+   surfaces no error; the record stays silently local.
+
+Verification: `just e2e` full cycle — 125 passed + 3 gated-skips in the
+main phase, 3/3 in the fault phase (128 effective).
