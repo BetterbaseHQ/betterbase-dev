@@ -549,5 +549,7 @@ export {
   setupSharedSpace,
   removeMember,
   switchToDevice,
+  COMPOSE_CMD,
+  PROJECT_ROOT,
 };
 export type { UserCredentials, AuthenticatedContext };
