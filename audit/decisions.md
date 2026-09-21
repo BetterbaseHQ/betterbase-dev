@@ -26,7 +26,7 @@ Revisit condition: schedule the campaigns alongside/after remediation, and in an
 
 2026-09-20 — User decision to start fixing findings, accepting the register (with its deferred Stage 3 campaigns, per D-003) as the evidence base. Wave order: (0) test gates and assurance infrastructure, (1) account-takeover criticals, (2) revocation/key-rotation cluster including coupled pairs (needs the revocation-guarantee decision recorded first), (3) silent data loss, (4) remainder by repo. Rules: one work package per finding or coupled cluster with a `findings/AUD-NNN.md` record; regression test first, then fix; "fixed" and "verified" recorded separately with evidence; cross-repository fixes coordinated explicitly; frozen v1 wire contracts get versioned migrations where a fix must touch them; deferred Stage 3 campaigns are scheduled as regression gates alongside the fixes they exercise.
 
-Wave 0 (AUD-060, AUD-001, AUD-002, AUD-015 storage portion) completed 2026-09-20: [wave-0 evidence](evidence/2026-09-20-remediation-wave0.md).
+Wave 0 (AUD-060, AUD-001, AUD-002, AUD-015 storage portion) completed 2026-09-20: [wave-0 evidence](evidence/2026-09-20-remediation-wave0.md). Wave 1 (AUD-003, AUD-005, AUD-006; AUD-015 route-level closure) completed 2026-09-20: [wave-1 evidence](evidence/2026-09-20-remediation-wave1.md). Independent code review ran per wave; its should-fix findings were fixed in-wave. Platform e2e runs are scheduled as the regression gate for the SPA/server co-deployed changes (per D-003's revisit condition).
 
 ## Product guarantees to resolve during Stage 1
 
