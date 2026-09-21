@@ -77,7 +77,7 @@ up-build:
 down:
     {{dev_compose}} down 2>/dev/null; {{prod_compose}} down 2>/dev/null; [ -f e2e/.env.docker ] && {{e2e_compose}} down 2>/dev/null; true
 
-# Run checks on all repos (SDK, accounts, sync, examples)
+# Run checks on all repos (SDK, accounts, sync, inference, json-joy-rs, examples)
 check-all:
     @echo "=== Checking betterbase (SDK) ==="
     cd ./betterbase && just check
@@ -87,6 +87,12 @@ check-all:
     @echo ""
     @echo "=== Checking betterbase-sync ==="
     cd ./betterbase-sync && just check
+    @echo ""
+    @echo "=== Checking betterbase-inference ==="
+    cd ./betterbase-inference && just check
+    @echo ""
+    @echo "=== Checking json-joy-rs ==="
+    cd ./json-joy-rs && just check
     @echo ""
     @echo "=== Checking shared package ==="
     cd ./betterbase-examples/shared && pnpm check
@@ -111,6 +117,11 @@ check-all:
     @echo ""
     @echo "=== Checking chat app ==="
     cd ./betterbase-examples/chat && pnpm check
+
+# Full platform gate: all repo checks plus the platform E2E cycle (requires Docker)
+check-platform:
+    just check-all
+    just e2e
 
 # Clean up dev environment including volumes
 clean:

@@ -43,8 +43,8 @@ just prod         # Start production
 just prod-build   # Build and start production
 just down         # Stop services
 
-just check-all    # Run checks: SDK, accounts, sync, examples/shared+launchpad+tasks+notes
-                  # (does NOT cover inference or json-joy-rs — check those in their repos)
+just check-all      # Run checks: SDK, accounts, sync, inference, json-joy-rs, all examples
+just check-platform # check-all + the full platform E2E cycle (requires Docker)
 
 just health       # Check service health
 just wait         # Wait for services to become healthy
