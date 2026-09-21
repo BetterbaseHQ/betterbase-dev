@@ -3,3 +3,21 @@
 [ 3434647ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5382/node_modules/.vite/deps/react-dom_client.js?v=3319325f:20102
 [ 3514987ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
 [ 3515059ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5382/node_modules/.vite/deps/react-dom_client.js?v=3319325f:20102
+[12956137ms] The requested module '/@fs/workspace/betterbase/js/src/auth/react.ts' does not provide an export named 'AuthProvider'
+[15083821ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
+[15083902ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'shareTree'
+[15963973ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
+[15964027ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'shareTree'
+[18606610ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'shareTree'
+[29904697ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
+[29904783ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'deleteTree'
+[32368004ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
+[32368085ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'deleteTree'
+[70615066ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
+[70615132ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'deleteTree'
+[84003022ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
+[84003098ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'deleteTree'
+[105024107ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
+[105024181ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'deleteTree'
+[110143519ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5382/@vite/client:864
+[110143588ms] The requested module '/@fs/workspace/betterbase/js/src/sync/index.ts' does not provide an export named 'deleteTree'
