@@ -21,4 +21,13 @@ Baselines: betterbase `eecda45`, accounts `fb3c5f1`, json-joy-rs `11e07a3`, exam
 
 ## Review results
 
-(appended after the independent review round)
+Independent adversarial review: **PASS** AUD-013/014, **PASS-with-notes** AUD-018/023 (no FAILs). The reviewer re-ran the accounts enforced DB gate live (96/96) and verified red-on-parent, lock semantics, codec math, and release/CI pin equality. Its findings and dispositions:
+
+- **IMPORTANT — AUD-018 upgrade regression (fixed)**: the persisted `META_SESSION_ID` was loaded unmasked, and ~99% of pre-fix databases hold an out-of-range sid → every put/patch would hard-error after upgrade. Fixed in `betterbase f08a442`: mask at load reproduces exactly the identity the old codec already encoded; integration test seeds the audit's legacy value (red on pre-mask parent). Record residual rewritten (the old "repair would require re-signing" claim was wrong — masking is exact).
+- **MINOR — AUD-023 (fixed)**: failed `create` leaked the Worker (now terminated, close-parity, test extended); `onPromoted` catch could re-arm a listener on a closed coordinator (now guarded). Residual added: a failed-promotion tab is leader-ineligible for its lifetime — sole-tab case needs reload (still strictly better than blocking all tabs).
+- **MINOR — register corruption (fixed)**: wave 6 had pasted fix text into the *finding* column of AUD-027/036/045/047/048/052 and left State "Open" — the "60/60" count was bookkeeping fiction. All six rows repaired from pre-wave-6 git history (finding text restored, State → Fixed); 0 Open states remain, making 60/60 real.
+- **MINOR — AUD-013 (noted)**: authorize→exchange policy-withdrawal window documented as pre-existing residual.
+
+Post-fix verification: betterbase `just check` exit 0 (Rust incl. new integration tests, 521 node + 200 browser), platform `just check-all` exit 0, `just e2e` 125+3 passed + faults 3/3, `just check-release` passing, examples CI pin byte-matches the re-pinned release.toml.
+
+Final component revisions (release.toml): betterbase `f08a442`, accounts `df7af27`, sync `a657e6b`, inference `8190318`, examples `85c606e`, json-joy-rs `410e199`.
