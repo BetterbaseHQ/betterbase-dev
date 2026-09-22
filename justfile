@@ -18,6 +18,7 @@ pull:
     cd ./betterbase-accounts && git pull
     cd ./betterbase-inference && git pull
     cd ./betterbase && git pull
+    cd ./json-joy-rs && git pull
     cd ./betterbase-sync && git pull
     cd ./betterbase-examples && git pull
 
@@ -349,6 +350,9 @@ status:
     @echo "=== betterbase-sync ==="
     @cd ./betterbase-sync && git status -s || true
     @echo ""
+    @echo "=== json-joy-rs ==="
+    @cd ./json-joy-rs && git status -s || true
+    @echo ""
     @echo "=== betterbase-examples ==="
     @cd ./betterbase-examples && git status -s || true
 
@@ -369,6 +373,9 @@ git-diff:
     @echo "=== betterbase-sync ==="
     @cd ./betterbase-sync && git diff --stat
     @echo ""
+    @echo "=== json-joy-rs ==="
+    @cd ./json-joy-rs && git diff --stat
+    @echo ""
     @echo "=== betterbase-examples ==="
     @cd ./betterbase-examples && git diff --stat
 
@@ -379,6 +386,7 @@ git-branch:
     @echo "betterbase-inference: $(cd ./betterbase-inference && git branch --show-current)"
     @echo "betterbase: $(cd ./betterbase && git branch --show-current)"
     @echo "betterbase-sync: $(cd ./betterbase-sync && git branch --show-current)"
+    @echo "json-joy-rs: $(cd ./json-joy-rs && git branch --show-current)"
     @echo "betterbase-examples: $(cd ./betterbase-examples && git branch --show-current)"
 
 # Fetch latest from origin for all repos (without merging)
@@ -388,6 +396,7 @@ git-fetch:
     cd ./betterbase-inference && git fetch
     cd ./betterbase && git fetch
     cd ./betterbase-sync && git fetch
+    cd ./json-joy-rs && git fetch
     cd ./betterbase-examples && git fetch
 
 # Push all repos to origin
@@ -406,6 +415,9 @@ git-push:
     @echo ""
     @echo "=== betterbase-sync ==="
     cd ./betterbase-sync && git push
+    @echo ""
+    @echo "=== json-joy-rs ==="
+    cd ./json-joy-rs && git push
     @echo ""
     @echo "=== betterbase-examples ==="
     cd ./betterbase-examples && git push
