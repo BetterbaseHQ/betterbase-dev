@@ -1,0 +1,15 @@
+# Betterbase platform release pin.
+#
+# Written by `scripts/release.sh pin` (`just release-pin`). A platform
+# release is this file plus every component at the pinned commit.
+# Verify with `just check-release` before tagging or deploying.
+#
+# The betterbase-dev commit containing this file is the release commit.
+
+[components]
+betterbase = "eecda45811811935fe0a6f7c337d87e23d81e2e2"
+betterbase-accounts = "fb3c5f1a4e8953c7b631b09e81f1f5a3fa6ca7b5"
+betterbase-sync = "a657e6bc07e49517e646470d79551bad68e1f436"
+betterbase-inference = "819031838e117595cfea13cba3ef3b878109dd59"
+betterbase-examples = "4bb0bacdc089c09eea2d1531203740338d8e8898"
+json-joy-rs = "11e07a31d58bf5a98ac702c499ceaf67abe38d64"

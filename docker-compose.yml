@@ -43,11 +43,28 @@ services:
   caddy:
     build: ./caddy
     ports:
+      # HTTP->HTTPS redirect + ACME HTTP-01 challenge (hostname mode only;
+      # dark when the sites are localhost:port HTTP mode)
+      - "80:80"
+      # Automatic HTTPS (hostname mode only; dark in localhost HTTP mode)
+      - "443:443"
+      # Localhost HTTP mode (when ACCOUNTS_SITE/SYNC_SITE are unset)
       - "5377:5377"  # accounts (rate-limited)
       - "5379:5379"  # sync (rate-limited)
+    environment:
+      # Site addresses: unset/":port" serves plain HTTP on that port
+      # (local mode); a real hostname switches Caddy to automatic HTTPS on
+      # 443 with ACME (Let's Encrypt). See caddy/Caddyfile.
+      - ACCOUNTS_SITE=${ACCOUNTS_SITE:-:5377}
+      - SYNC_SITE=${SYNC_SITE:-:5379}
+      - ACME_EMAIL=${ACME_EMAIL:-admin@localhost}
     volumes:
       # Config is mounted, not baked: edits apply after `docker compose restart caddy`
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Persist ACME account + certificates across restarts (without this,
+      # every restart re-issues certs and burns Let's Encrypt rate limits)
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       accounts:
         condition: service_healthy
@@ -92,8 +109,20 @@ services:
       - CAP_SECRET=${CAP_SECRET}
       # Privacy-preserving identity hashing key (HMAC-SHA256)
       - IDENTITY_HASH_KEY=${IDENTITY_HASH_KEY}
-      # Sync endpoint advertised in federation discovery metadata
-      - SYNC_ENDPOINT=${SYNC_ENDPOINT:-http://sync:5379/api/v1}
+      # Sync endpoint advertised in federation discovery metadata.
+      # Must be reachable from *browsers* (and federation peers), not just
+      # inside the Docker network — for a named deployment set e.g.
+      # SYNC_ENDPOINT=https://sync.example.com/api/v1 (matching SYNC_SITE).
+      # The localhost default keeps a bare local prod stack consistent.
+      - SYNC_ENDPOINT=${SYNC_ENDPOINT:-http://localhost:5379/api/v1}
+      # Email delivery (SMTP_DEV_MODE=false in prod → real SMTP). The server
+      # fails fast at startup if SMTP_HOST is empty in SMTP mode.
+      - SMTP_DEV_MODE=${SMTP_DEV_MODE:-false}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@betterbase.dev}
     depends_on:
       accounts-db:
         condition: service_healthy
@@ -133,6 +162,12 @@ services:
       - AUDIENCES=betterbase-sync
       # Privacy-preserving rate limit identity hashing (matches accounts)
       - IDENTITY_HASH_KEY=${IDENTITY_HASH_KEY}
+      # Blob/file storage: filesystem backend on a named volume, matching
+      # dev and e2e parity. Set FILE_STORAGE=none to disable file routes.
+      - FILE_STORAGE=${FILE_STORAGE:-fs}
+      - FILE_FS_PATH=/var/lib/betterbase-sync/files
+    volumes:
+      - sync_files:/var/lib/betterbase-sync/files
     depends_on:
       accounts:
         condition: service_healthy
@@ -147,5 +182,8 @@ services:
 volumes:
   cap_data:
   valkey_data:
+  caddy_data:
+  caddy_config:
   accounts_db_data:
   sync_db_data:
+  sync_files:

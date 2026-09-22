@@ -401,6 +401,30 @@ SYNC_DB_NAME=sync
 IDENTITY_HASH_KEY=${IDENTITY_HASH_KEY}
 # HMAC key for space session tokens (optional, ephemeral if unset).
 SPACE_SESSION_SECRET=${SPACE_SESSION_SECRET}
+
+# =============================================================================
+# Production Deployment (TLS + email + advertised endpoints)
+# All optional for local dev; uncomment and set for a named deployment.
+# =============================================================================
+
+# Caddy site addresses: unset = plain HTTP on 5377/5379 (local mode). Set to
+# real hostnames to enable automatic HTTPS on 443 (Let's Encrypt). Ports
+# 80/443 are published by docker-compose.yml either way.
+#ACCOUNTS_SITE=accounts.example.com
+#SYNC_SITE=sync.example.com
+#ACME_EMAIL=ops@example.com
+
+# Sync endpoint advertised to browsers/federation peers. Must be publicly
+# reachable — NOT a docker-network URL. For a named deployment:
+#SYNC_ENDPOINT=https://sync.example.com/api/v1
+
+# Email delivery (production defaults to real SMTP; the server refuses to
+# start in SMTP mode without a host). SMTP_DEV_MODE=true logs emails instead.
+#SMTP_HOST=smtp.example.com
+#SMTP_PORT=587
+#SMTP_USERNAME=
+#SMTP_PASSWORD=
+#SMTP_FROM=noreply@example.com
 EOF
 
     # Set restrictive permissions (secrets file)

@@ -37,6 +37,9 @@ services:
     volumes:
       - ./betterbase-sync:/app
       - /app/tmp
+      # Redirect the prod files volume (docker-compose.yml) to a dev one so
+      # `dev-down -v` can never touch prod blob data (same pattern as the DBs)
+      - dev_sync_files:/var/lib/betterbase-sync/files
     ports:
       - "5379:5379"
     environment:
@@ -172,4 +175,5 @@ services:
 volumes:
   dev_accounts_db_data:
   dev_sync_db_data:
+  dev_sync_files:
   dev_cap_data:

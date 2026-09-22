@@ -123,6 +123,26 @@ check-platform:
     just check-all
     just e2e
 
+# =============================================================================
+# Release Pinning & Backup (AUD-058)
+# =============================================================================
+
+# Stamp current component HEADs into release.toml (defines a platform release)
+release-pin:
+    ./scripts/release.sh pin
+
+# Release gate: verify every component is clean and at its release.toml pin
+check-release:
+    ./scripts/release.sh check
+
+# Backup production data (both DBs + blob files + certs) to backups/<timestamp>
+backup *args:
+    ./scripts/backup.sh {{args}}
+
+# Restore production data from a backup directory
+restore dir:
+    ./scripts/backup.sh --restore {{dir}}
+
 # Clean up dev environment including volumes
 clean:
     {{dev_compose}} down -v

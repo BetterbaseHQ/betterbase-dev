@@ -130,3 +130,23 @@ Identical advisory set in each of launchpad, tasks, passwords, photos, board, ch
 - Accounts web is a browser SPA: React Router advisories involving SSR/RSC code paths must not be described as demonstrated server-side RCE for this deployment.
 - The Tiptap maintainer advisory (GHSA-cp6q-959q-f8rh) states standard fixed schemas discard unknown attributes; untrusted-attribute handling is required for exploitability, and that reachability has not been established in Notes.
 - Advisory triage and dependency updates remain remediation tasks (out of scope for this audit wave; no product or lockfile edits were made).
+
+---
+
+## Wave-10 remediation rescan (2026-09-21, AUD-059 close)
+
+Tooling unchanged (cargo-audit 0.22.2, pnpm 12.4.2). Post-fix state:
+
+| Target | Before | After | Notes |
+|---|---|---|---|
+| RustSec accounts / sync / inference | 1 each (rsa 0.9.10) | **0 each (exit 0)** | RUSTSEC-2023-0071 ignored via `.cargo/audit.toml` with in-file rationale (ES256-only JWT usage; no RSA key loaded; no upstream fix) |
+| npm accounts web | 16 (8 high) | **0** | react-router re-resolved in-range to fixed releases |
+| npm SDK (betterbase/js) | 2 | **0** | uuid override ^11.1.1; esbuild devDep ^0.28.1 |
+| npm shared | 5 (2 high) | **1 low** (accepted) | tsup range-caps esbuild at 0.27.7 (build-only) |
+| npm launchpad/tasks/photos/board/passwords/chat | 3 each | **0 each** | uuid override; explicit rollup/esbuild devDeps |
+| npm notes | 7 (3 high) | **1 moderate** (accepted) | linkify-it/markdown-it fixed; @tiptap/core 2.27.2 stays (patch = 2→3 major; advisory requires untrusted-attribute handling notes does not do) |
+| npm e2e | 1 | **0** | esbuild re-resolved |
+
+Net: 47 npm advisory matches → 2 accepted (both with reachability caveats); 3 RustSec findings → 0 unacknowledged.
+
+Operational note: pnpm 12 reads `overrides` from `pnpm-workspace.yaml`, not package.json `pnpm.overrides`. Separately, `pnpm update` on vite 8's optional build peers (rollup/esbuild) can silently drop them from the graph while `vite-plugin-top-level-await` still requires rollup at config load — both are now explicit devDeps in the SDK and all example apps.

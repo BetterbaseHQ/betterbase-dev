@@ -123,12 +123,21 @@ Data is stored **plaintext** in the client db (fully queryable). Encryption happ
 
 ## Infrastructure
 
-- **Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync). Disabled in dev (direct port access). Health check on `:2019/health`.
+- **Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth/WS-upgrades, 300/min general, 1000/min sync default). Disabled in dev (direct port access). Health check on `:2019/health`. Client sync is exclusively WebSocket RPC (`/api/v1/ws`) — HTTP tiers rate-limit connection upgrades; per-connection abuse is bounded server-side (mailbox connection caps, federation peer quotas).
 - **CAP** proof-of-work CAPTCHA service (port 3000 internal). Dev mode auto-provisions CAP keys. Caddy serves CAP assets at `/cap/*`.
 - `docker-compose.yml` = base production config; `docker-compose.dev.yml` = dev overrides (passed explicitly with `-f`, not auto-loaded)
 - Dev volumes prefixed with `dev_` so `just dev-down -v` can never delete prod data
 - Dev sets `SMTP_DEV_MODE=true` (logs emails instead of sending) and exposes the Web UI on a separate port (5378)
 - OAuth client setup automated: `just setup-examples` (runs automatically on first `just dev`)
+
+## Production deployment
+
+- **TLS**: set `ACCOUNTS_SITE`/`SYNC_SITE` (hostnames) + `ACME_EMAIL` in `.env` → Caddy switches to automatic HTTPS on 443 with HTTP→HTTPS redirect on 80. Unset = plain HTTP on 5377/5379 (local mode). Ports 80/443/5377/5379 are published; each mode leaves the other's ports dark. Certificates persist in the `caddy_data` volume. `OAUTH_ISSUER` must match the accounts hostname in TLS mode.
+- **Email**: production defaults to real SMTP and accounts **fails startup** without `SMTP_HOST` (set it, or `SMTP_DEV_MODE=true` for local prod smoke runs).
+- **Advertised endpoints**: `SYNC_ENDPOINT` (federation discovery) defaults to `http://localhost:5379/api/v1` — set it to the public `https://sync.<domain>/api/v1` for named deployments.
+- **Blob files**: production enables filesystem storage on the `sync_files` volume by default (`FILE_STORAGE=fs`); set `FILE_STORAGE=none` to disable.
+- **Backup/restore**: `just backup` → `backups/<timestamp>/` (both DBs pg_dump'd, files + certs archived). `just restore <dir>` (stops app services, restores, restarts).
+- **Releases**: `release.toml` pins every component at an exact commit. `just release-pin` stamps current HEADs; `just check-release` is the release gate. The betterbase-dev commit containing `release.toml` is the release commit. Examples CI pins its sibling checkouts (betterbase, json-joy-rs) to the same revisions — bump together via `just release-pin` and note that CI needs the pinned commits pushed.
 
 ## Environment Variables
 
