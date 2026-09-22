@@ -77,11 +77,11 @@ Verification wave 2026-09-20 (successor agents, pinned baselines, repos clean): 
 | AUD-047 | E-03 | Defect | Fixed (wave 6, commit examples 06aa06a): durable move marker + idempotent completion engine + mount-time reconciler; crash-state regressions. | High | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
 | AUD-048 | E-04 | Defect | Fixed (wave 6, commit examples 221d7d5): compensating delete on byte-persistence failure + deletable unavailable tiles. | Medium | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
 | AUD-049 | E-05 | Defect | Task read/modify/write without CRDT base can overwrite an intervening sync update (removes peer-added todos). | High | **Fixed 2026-09-21** — atomic getWithBase + base-anchored todo patches ([evidence](evidence/2026-09-21-remediation-wave3.md), [record](findings/AUD-049.md)) |
-| AUD-050 | E-06 | Defect (trust) | Chat attribution trusts a writable `senderHandle`; green shield validates chain integrity, not displayed identity. | Medium | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
-| AUD-051 | E-07 | Defect | Chat send completion clears newer drafts; preview-failure retry duplicates the committed message. | Medium | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
+| AUD-050 | E-06 | Defect (trust) | Chat attribution trusts a writable `senderHandle`; green shield validates chain integrity, not displayed identity. | Medium | Fixed (wave 9, examples `1750bd5`+`591bff0`, SDK `454be3e`): attribution from chain-author did via membership; degradation windows + raised-bar residual documented |
+| AUD-051 | E-07 | Defect | Chat send completion clears newer drafts; preview-failure retry duplicates the committed message. | Medium | Fixed (wave 9, examples `1750bd5`): clear-if-unchanged, double-fire guard, idempotent retry id |
 | AUD-052 | E-08 | Assurance gap | Fixed (wave 6, commit examples a130637): shared UploadQueueStatus + effectiveSyncStatus Synced→Syncing downgrade while bytes queue. | Medium | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
-| AUD-053 | E-09 | Defect | Default notebook/board creation failures bypass the error UI and the one-shot guard blocks retry. | Low | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
-| AUD-054 | E-10 | Defect | Partial column-deletion failure hides surviving cards. | Medium | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
+| AUD-053 | E-09 | Defect | Default notebook/board creation failures bypass the error UI and the one-shot guard blocks retry. | Low | Fixed (wave 9, examples `1750bd5`): catch + report + guard release; partial-create residual documented |
+| AUD-054 | E-10 | Defect | Partial column-deletion failure hides surviving cards. | Medium | Fixed (wave 9, examples `1750bd5`): local path via gated deleteTree cascade |
 
 ## Deployment, release, and assurance (report 06)
 
