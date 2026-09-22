@@ -24,7 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Mirror the client ID into the root .env as <APP>_CLIENT_ID so the
-# docker-compose samples service can inject it into the hosted-apps
+# docker-compose examples service can inject it into the hosted-apps
 # container (dev vite apps read the per-app .env instead).
 upsert_root_env() {
     local root_env="$PROJECT_ROOT/.env"
@@ -116,6 +116,6 @@ echo "VITE_OAUTH_CLIENT_ID=$CLIENT_ID" > "$ENV_FILE"
 echo -e "${GREEN}OAuth client ID saved to $ENV_FILE${NC}"
 echo "Client ID: $CLIENT_ID"
 
-# Also expose as <APP>_CLIENT_ID in the root .env so the samples service
+# Also expose as <APP>_CLIENT_ID in the root .env so the examples service
 # (docker-compose.yml) can inject it into the hosted-apps container.
 upsert_root_env "$CLIENT_ID"

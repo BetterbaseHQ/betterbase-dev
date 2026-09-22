@@ -51,14 +51,14 @@ services:
       # Localhost HTTP mode (when ACCOUNTS_SITE/SYNC_SITE are unset)
       - "5377:5377"  # accounts (rate-limited)
       - "5379:5379"  # sync (rate-limited)
-      - "5380:5380"  # samples (rate-limited)
+      - "5380:5380"  # examples (rate-limited)
     environment:
       # Site addresses: unset/":port" serves plain HTTP on that port
       # (local mode); a real hostname switches Caddy to automatic HTTPS on
       # 443 with ACME (Let's Encrypt). See caddy/Caddyfile.
       - ACCOUNTS_SITE=${ACCOUNTS_SITE:-:5377}
       - SYNC_SITE=${SYNC_SITE:-:5379}
-      - SAMPLES_SITE=${SAMPLES_SITE:-:5380}
+      - EXAMPLES_SITE=${EXAMPLES_SITE:-:5380}
       - ACME_EMAIL=${ACME_EMAIL:-admin@localhost}
     volumes:
       # Config is mounted, not baked: edits apply after `docker compose restart caddy`
@@ -80,19 +80,19 @@ services:
       retries: 5
 
   # ==========================================================================
-  # Samples - hosted example apps (single container, path-based)
+  # Examples - hosted example apps (single container, path-based)
   # ==========================================================================
   # Serves the launchpad portal at / and each example app at /<app>/.
   # Client IDs + accounts domain are injected at startup (see entrypoint);
   # setup provisions the OAuth clients (scripts/setup-oauth-client.sh).
-  samples:
+  examples:
     image: ghcr.io/betterbasehq/betterbase-examples:latest
     expose:
       - "8080"
     environment:
-      - SAMPLES_ACCOUNTS_DOMAIN=${SAMPLES_ACCOUNTS_DOMAIN:-localhost:5377}
+      - EXAMPLES_ACCOUNTS_DOMAIN=${EXAMPLES_ACCOUNTS_DOMAIN:-localhost:5377}
       # Space- or comma-separated; launchpad is always served at /
-      - ENABLED_APPS=${ENABLED_APPS:-tasks notes photos board chat passwords}
+      - EXAMPLES_ENABLED_APPS=${EXAMPLES_ENABLED_APPS:-tasks notes photos board chat passwords}
       - LAUNCHPAD_CLIENT_ID=${LAUNCHPAD_CLIENT_ID:-}
       - TASKS_CLIENT_ID=${TASKS_CLIENT_ID:-}
       - NOTES_CLIENT_ID=${NOTES_CLIENT_ID:-}
