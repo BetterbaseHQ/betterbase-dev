@@ -34,3 +34,18 @@ Date: 2026-09-21. Scope: the remaining betterbase-sync findings plus their SDK t
 - AUD-033 boundary: membership payloads are opaque to the server; privileged effect is enforced by client-side signed hash-chain verification. The server gate (Write, or Read+kind) is anti-spam defense; the kind field is advisory metadata with no privileged server-side effect. Field addition is additive/backward-compatible (absent → Write; unknown values → invalid params) and documented as an additive v1 extension.
 - AUD-039 GC safety: metadata rows are unique per (space, file_id), so no cross-record object sharing exists; the re-upload guard + 24h grace cover the PUT-retry (bytes-before-metadata) race; queue completion only after object erasure makes backend failures retryable.
 - AUD-040 security: header spoofing without the flag cannot occur (flag off → header ignored); with the flag, a spoofed scheme can only cause signature-base mismatch (auth failure), never forgery.
+
+## Review results (appended after completion)
+
+Independent review of both deltas: verdicts **PASS** for AUD-038/040, **PASS-with-notes** for AUD-033/035/037/039. Two IMPORTANT and six MINOR findings; all fixed or honestly documented (betterbase-sync `200914d`, betterbase `9c9735d`):
+
+- **IMPORTANT — lost-wakeup race (peer.rs):** the `Notify` waiter was armed only after the send, so a peer answering inside that window left the caller sleeping to the 60s deadline and then tearing down a healthy connection. Fixed: waiter `enable()`d before the send; send deadline-bounded (also closes the "peer stops reading → mutex wedged" MINOR); timed-out calls prefer a stored outcome before resetting.
+- **IMPORTANT — AUD-033 boundary claim overstated:** client-side `verifyMembershipEntry` checks signature↔role consistency, not authority chains — any read-level member (or invitee) can forge member-list *display* entries (write members could pre-fix; wave 7 widened the appender set, did not create the hole). Server capabilities are unaffected (rooted-chain validation), and no client capability is derived from the log. Record corrected; client-side `prf`→root chain validation recorded as the v1.x hardening.
+- **MINORs fixed:** rejected-subscribe spaces pruned from the outgoing notification gate (symmetry with the incoming gate); retries use fresh request ids (old reader's late frames can't complete the new slot); revocation-quarantine-until-restart tradeoff documented in code (server-side 403 enforcement makes it safe); sweep TOCTOU documented as accepted residual; `FEDERATION_TRUST_FORWARDED_PROTO` + `FILE_DELETION_GRACE_SECS` added to AGENTS.md.
+- Empirical spot-checks by the reviewer: unknown `kind` values decode-fail as `invalid_params`; old-server decode ignores the `kind` field (graceful mixed-fleet degradation); DB-cutoff micros comparison unit-correct.
+
+## Final gates (after review fixes)
+
+betterbase-sync fmt/clippy/tests (PostgreSQL) **454 passed**; betterbase `check-js` **519 node + 200 browser**; `just e2e` **125+3 main (4.4m), faults 3/3 (50.1s)**.
+
+Wave-7 commits (final): betterbase-sync `0bb94a7`, `200914d`; betterbase `ca6f6d5`, `9c9735d`. Register: **43/60**. Wave 7 complete.
