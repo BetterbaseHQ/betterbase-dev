@@ -63,10 +63,10 @@ Verification wave 2026-09-20 (successor agents, pinned baselines, repos clean): 
 
 | ID | Source | Type | Observation | Severity (provisional) | State |
 | --- | --- | --- | --- | --- | --- |
-| AUD-041 | D-01 | Defect (claim/integration) | Documented quick-start sends plaintext through the "E2EE" proxy; no checked-in client implements encryption/attestation. | High | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
-| AUD-042 | D-02 | Defect (defaults) | Empty issuer/audience restrictions permitted; production example configures neither. | Medium | Open; source-confirmed (conditional); re-verified 2026-09-20 (wave 2) |
-| AUD-043 | D-03 | Defect | Unknown JWKS key IDs trigger repeated serialized refreshes pre-auth, outside the user rate limiter. | Medium | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
-| AUD-044 | D-04 | Assurance gap | Public/streaming proxy routes lack aggregate body/stream/concurrency bounds. | Medium | Open; source-confirmed; re-verified 2026-09-20 (wave 2) |
+| AUD-041 | D-01 | Defect (claim/integration) | Documented quick-start sends plaintext through the "E2EE" proxy; no checked-in client implements encryption/attestation. | High | Fixed (wave 8, inference `0316732`): claim corrected, REQUIRE_EHBP enforcement; reference client = documented v1.x residual |
+| AUD-042 | D-02 | Defect (defaults) | Empty issuer/audience restrictions permitted; production example configures neither. | Medium | Fixed (wave 8, inference `0316732`): startup fails closed without ISSUER+AUDIENCES |
+| AUD-043 | D-03 | Defect | Unknown JWKS key IDs trigger repeated serialized refreshes pre-auth, outside the user rate limiter. | Medium | Fixed (wave 8, inference `0316732`): 30s refresh floor + streaming size cap |
+| AUD-044 | D-04 | Assurance gap | Public/streaming proxy routes lack aggregate body/stream/concurrency bounds. | Medium | Fixed (wave 8, inference `0316732`): body cap, stream deadlines, global concurrency semaphore |
 
 ## Examples and shared UI (report 05)
 
