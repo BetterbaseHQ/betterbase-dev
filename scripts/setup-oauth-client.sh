@@ -23,6 +23,22 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Mirror the client ID into the root .env as <APP>_CLIENT_ID so the
+# docker-compose samples service can inject it into the hosted-apps
+# container (dev vite apps read the per-app .env instead).
+upsert_root_env() {
+    local root_env="$PROJECT_ROOT/.env"
+    local var
+    var="$(echo "$APP_NAME" | tr '[:lower:]' '[:upper:]')_CLIENT_ID"
+    [ -f "$root_env" ] || return 0
+    if grep -q "^$var=" "$root_env" 2>/dev/null; then
+        sed -i '' "s|^$var=.*|$var=$1|" "$root_env" 2>/dev/null || \
+            sed -i "s|^$var=.*|$var=$1|" "$root_env"
+    else
+        printf '%s=%s\n' "$var" "$1" >> "$root_env"
+    fi
+}
+
 # Run oauth-client command inside the accounts container
 # Uses the compiled binary in prod; falls back to cargo run in dev containers
 oauth_client_cmd() {
@@ -56,10 +72,12 @@ fi
 
 # If we have an ID, verify it exists in the database
 if [ -n "$EXISTING_ID" ]; then
+    # Rows print "ID:" before "Name:", so track the last seen ID
     LIST_OUTPUT=$(oauth_client_cmd list 2>&1)
     if echo "$LIST_OUTPUT" | grep -q "$EXISTING_ID"; then
         echo -e "${GREEN}OAuth client $EXISTING_ID exists in database${NC}"
         echo "Client ID: $EXISTING_ID"
+        upsert_root_env "$EXISTING_ID"
         exit 0
     else
         echo -e "${YELLOW}OAuth client $EXISTING_ID not found in database, recreating...${NC}"
@@ -80,7 +98,8 @@ CLIENT_ID=$(echo "$OUTPUT" | grep "^Client ID:" | awk '{print $3}')
 # If create failed (client name exists), get ID from list
 if [ -z "$CLIENT_ID" ]; then
     LIST_OUTPUT=$(oauth_client_cmd list 2>&1)
-    CLIENT_ID=$(echo "$LIST_OUTPUT" | grep -A1 "Name:.*$APP_NAME" | grep "ID:" | head -1 | awk '{print $2}')
+    CLIENT_ID=$(echo "$LIST_OUTPUT" | awk -v n="$APP_NAME" \
+        '$1 == "ID:" { id = $2 } $1 == "Name:" && $2 == n { print id }' | head -1)
 fi
 
 if [ -z "$CLIENT_ID" ]; then
@@ -96,3 +115,7 @@ mkdir -p "$(dirname "$ENV_FILE")"
 echo "VITE_OAUTH_CLIENT_ID=$CLIENT_ID" > "$ENV_FILE"
 echo -e "${GREEN}OAuth client ID saved to $ENV_FILE${NC}"
 echo "Client ID: $CLIENT_ID"
+
+# Also expose as <APP>_CLIENT_ID in the root .env so the samples service
+# (docker-compose.yml) can inject it into the hosted-apps container.
+upsert_root_env "$CLIENT_ID"

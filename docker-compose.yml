@@ -51,12 +51,14 @@ services:
       # Localhost HTTP mode (when ACCOUNTS_SITE/SYNC_SITE are unset)
       - "5377:5377"  # accounts (rate-limited)
       - "5379:5379"  # sync (rate-limited)
+      - "5380:5380"  # samples (rate-limited)
     environment:
       # Site addresses: unset/":port" serves plain HTTP on that port
       # (local mode); a real hostname switches Caddy to automatic HTTPS on
       # 443 with ACME (Let's Encrypt). See caddy/Caddyfile.
       - ACCOUNTS_SITE=${ACCOUNTS_SITE:-:5377}
       - SYNC_SITE=${SYNC_SITE:-:5379}
+      - SAMPLES_SITE=${SAMPLES_SITE:-:5380}
       - ACME_EMAIL=${ACME_EMAIL:-admin@localhost}
     volumes:
       # Config is mounted, not baked: edits apply after `docker compose restart caddy`
@@ -73,6 +75,33 @@ services:
     healthcheck:
       # Use dedicated Caddy health endpoint (not proxied to backend)
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ==========================================================================
+  # Samples - hosted example apps (single container, path-based)
+  # ==========================================================================
+  # Serves the launchpad portal at / and each example app at /<app>/.
+  # Client IDs + accounts domain are injected at startup (see entrypoint);
+  # setup provisions the OAuth clients (scripts/setup-oauth-client.sh).
+  samples:
+    image: ghcr.io/betterbasehq/betterbase-examples:latest
+    expose:
+      - "8080"
+    environment:
+      - SAMPLES_ACCOUNTS_DOMAIN=${SAMPLES_ACCOUNTS_DOMAIN:-localhost:5377}
+      # Space- or comma-separated; launchpad is always served at /
+      - ENABLED_APPS=${ENABLED_APPS:-tasks notes photos board chat passwords}
+      - LAUNCHPAD_CLIENT_ID=${LAUNCHPAD_CLIENT_ID:-}
+      - TASKS_CLIENT_ID=${TASKS_CLIENT_ID:-}
+      - NOTES_CLIENT_ID=${NOTES_CLIENT_ID:-}
+      - PHOTOS_CLIENT_ID=${PHOTOS_CLIENT_ID:-}
+      - BOARD_CLIENT_ID=${BOARD_CLIENT_ID:-}
+      - CHAT_CLIENT_ID=${CHAT_CLIENT_ID:-}
+      - PASSWORDS_CLIENT_ID=${PASSWORDS_CLIENT_ID:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
       interval: 5s
       timeout: 3s
       retries: 5

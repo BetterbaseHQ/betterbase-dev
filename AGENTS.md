@@ -132,12 +132,13 @@ Data is stored **plaintext** in the client db (fully queryable). Encryption happ
 
 ## Production deployment
 
-- **TLS**: set `ACCOUNTS_SITE`/`SYNC_SITE` (hostnames) + `ACME_EMAIL` in `.env` → Caddy switches to automatic HTTPS on 443 with HTTP→HTTPS redirect on 80. Unset = plain HTTP on 5377/5379 (local mode). Ports 80/443/5377/5379 are published; each mode leaves the other's ports dark. Certificates persist in the `caddy_data` volume. `OAUTH_ISSUER` must match the accounts hostname in TLS mode.
+- **TLS**: set `ACCOUNTS_SITE`/`SYNC_SITE`/`SAMPLES_SITE` (hostnames) + `ACME_EMAIL` in `.env` → Caddy switches to automatic HTTPS on 443 with HTTP→HTTPS redirect on 80. Unset = plain HTTP on 5377/5379/5380 (local mode). Ports 80/443/5377/5379/5380 are published; each mode leaves the other's ports dark. Certificates persist in the `caddy_data` volume. `OAUTH_ISSUER` must match the accounts hostname in TLS mode.
 - **Email**: production defaults to real SMTP and accounts **fails startup** without `SMTP_HOST` (set it, or `SMTP_DEV_MODE=true` for local prod smoke runs).
 - **Advertised endpoints**: `SYNC_ENDPOINT` (federation discovery) defaults to `http://localhost:5379/api/v1` — set it to the public `https://sync.<domain>/api/v1` for named deployments.
 - **Blob files**: production enables filesystem storage on the `sync_files` volume by default (`FILE_STORAGE=fs`); set `FILE_STORAGE=none` to disable.
 - **Backup/restore**: `just backup` → `backups/<timestamp>/` (both DBs pg_dump'd, files + certs archived). `just restore <dir>` (stops app services, restores, restarts).
 - **Releases**: `release.toml` pins every component at an exact commit. `just release-pin` stamps current HEADs; `just check-release` is the release gate. The betterbase-dev commit containing `release.toml` is the release commit. Examples CI pins its sibling checkouts (betterbase, json-joy-rs) to the same revisions — bump together via `just release-pin` and note that CI needs the pinned commits pushed.
+- **Samples image**: `betterbase-examples/Dockerfile` (build context = repo root, needs the wasm-pack `pkg/` dirs) builds every app path-based into one container — launchpad at `/`, apps at `/<app>/` — published to GHCR as `betterbase-examples` by the examples repo's Docker workflow. Deployment config (accounts domain, OAuth client IDs, `ENABLED_APPS`) is injected at container start via `config.js` (see `shared/src/lib/runtime-config.ts`); apps fall back to `VITE_*` env vars in dev. `betterbase-deploy` hosts it at `samples.<domain>` (or `:5380` locally) with `setup.sh` provisioning the OAuth clients.
 
 ## Environment Variables
 
