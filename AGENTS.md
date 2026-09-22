@@ -123,7 +123,7 @@ Data is stored **plaintext** in the client db (fully queryable). Encryption happ
 
 ## Infrastructure
 
-- **Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth/WS-upgrades, 300/min general, 1000/min sync default). Disabled in dev (direct port access). Health check on `:2019/health`. Client sync is exclusively WebSocket RPC (`/api/v1/ws`) — HTTP tiers rate-limit connection upgrades; per-connection abuse is bounded server-side (mailbox connection caps, federation peer quotas).
+- **Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth/WS-upgrades, 300/min general, 600/min sync default, 1000/min accounts web default). Disabled in dev (direct port access). Health check on `:2019/health`. Client sync is exclusively WebSocket RPC (`/api/v1/ws`) — HTTP tiers rate-limit connection upgrades; per-connection abuse is bounded server-side (mailbox connection caps, federation peer quotas).
 - **CAP** proof-of-work CAPTCHA service (port 3000 internal). Dev mode auto-provisions CAP keys. Caddy serves CAP assets at `/cap/*`.
 - `docker-compose.yml` = base production config; `docker-compose.dev.yml` = dev overrides (passed explicitly with `-f`, not auto-loaded)
 - Dev volumes prefixed with `dev_` so `just dev-down -v` can never delete prod data

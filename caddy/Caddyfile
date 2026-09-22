@@ -8,7 +8,7 @@
 #   - Strict:   60/min   - Login, registration, recovery, federation WS
 #   - Moderate: 120/min  - Verification, OAuth, client WS upgrades
 #   - Standard: 300/min  - Authenticated API calls, health/JWKS, files
-#   - Relaxed:  1000/min - Web UI, unmatched routes
+#   - Relaxed:  1000/min - accounts web UI/unmatched; 600/min - sync default
 #
 # Client sync is exclusively WebSocket RPC (/api/v1/ws) — HTTP tiers cover
 # connection upgrades only; per-message/per-connection abuse is bounded

@@ -27,7 +27,7 @@ cmd="${1:-}"
 case "$cmd" in
     pin)
         for repo in "${COMPONENTS[@]}"; do
-            if [ -n "$(git -C "$repo" status --porcelain --untracked-files=no)" ]; then
+            if [ -n "$(git -C "$repo" status --porcelain)" ]; then
                 echo "Error: $repo has uncommitted changes — commit them before pinning a release." >&2
                 exit 1
             fi
@@ -63,12 +63,12 @@ case "$cmd" in
                 continue
             fi
             head="$(git -C "$repo" rev-parse HEAD)"
-            dirty="$(git -C "$repo" status --porcelain --untracked-files=no)"
+            dirty="$(git -C "$repo" status --porcelain)"
             if [ "$head" != "$pinned" ]; then
                 echo "MISS  $repo: HEAD ${head:0:12} != pin ${pinned:0:12}"
                 failed=1
             elif [ -n "$dirty" ]; then
-                echo "MISS  $repo: pinned but has uncommitted tracked changes"
+                echo "MISS  $repo: pinned but has uncommitted changes (incl. untracked)"
                 failed=1
             else
                 echo "OK    $repo @ ${head:0:12}"

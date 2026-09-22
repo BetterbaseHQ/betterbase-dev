@@ -2,7 +2,7 @@
 
 Date: 2026-09-21. Scope: the five deployment/dependency findings. Register: 51 → **56/60**.
 
-Baselines: betterbase-dev `d2b519c`, accounts `44be272`, sync `200914d`, inference `f1ac02c`, betterbase `454be3e`, examples `591bff0`. Fix commits: accounts `fb3c5f1`, sync `a657e6b`, inference `8190318`, betterbase `eecda45`, examples `4bb0bac` (+ dev repo, this commit).
+Baselines: betterbase-dev `d2b519c`, accounts `44be272`, sync `200914d`, inference `f1ac02c`, betterbase `454be3e`, examples `591bff0`. Fix commits: accounts `fb3c5f1`, sync `a657e6b`, inference `8190318`, betterbase `eecda45`, examples `4bb0bac` + review round `6ad8514` (+ dev repo, this commit). Release pin re-stamped after the review fixes.
 
 ## Work packages
 
@@ -23,7 +23,13 @@ Baselines: betterbase-dev `d2b519c`, accounts `44be272`, sync `200914d`, inferen
 
 ## Review results
 
-(appended after the independent review round)
+Independent review (adversarial, source-traced + commands re-run): **PASS** AUD-055/056/057/059, **PASS-with-notes** AUD-058. All load-bearing claims verified against reality (merged-compose mount *replacement* semantics, SMTP gate position on the startup path, route↔tier correspondence, broker caps, audit gating, all 11 workspace audits, release HEAD equality). Review findings and dispositions:
+
+- **IMPORTANT — CI pinned a nonexistent betterbase SHA** (mistyped in transcription; shared prefix made it eyeball-deceptive): fixed — ref now byte-identical to release.toml (`examples 6ad8514`), record wording corrected.
+- **MINOR — backup/restore hardening** (all fixed in `scripts/backup.sh`, round-trip re-smoke-tested): `--exit-on-error` on both `pg_restore`s (no half-applied SQL); caddy archive skipped when the volume doesn't exist (docker auto-create had made the fallback near-unreachable) and its restore guarded against empty archives (which would have wiped live certs); service capture fails closed (no `|| true`); hot-backup consistency semantics documented in the header.
+- **MINOR — release gate now counts untracked files as dirty** (an untracked source file can alter a certified build); dev-repo-only untracked scratch stays outside the gate (the dev repo is not a pinned component).
+- **MINOR — doc accuracy**: "1000/min sync default" corrected to 600/min (AGENTS.md + Caddyfile header; 1000/min is the accounts web default); AUD-059 precision (tiptap 2.27.3, esbuild devDep ^0.28.2).
+- Disclosed, not fixed: both CI sibling pins point at unpushed commits (workflow documents that CI needs them pushed); ACME issuance not exercised locally.
 
 ## Residuals carried
 
