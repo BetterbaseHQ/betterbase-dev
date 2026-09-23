@@ -177,12 +177,13 @@ async function loginUser(
   page: Page,
   creds: UserCredentials,
   dbName: string,
-  opts?: { clientId?: string; domain?: string },
+  opts?: { clientId?: string; domain?: string; extraParams?: Record<string, string> },
 ): Promise<void> {
   // Navigate to test harness with unique DB name (and optional Server B overrides)
   const params = new URLSearchParams({ db: dbName });
   if (opts?.clientId) params.set("clientId", opts.clientId);
   if (opts?.domain) params.set("domain", opts.domain);
+  for (const [k, v] of Object.entries(opts?.extraParams ?? {})) params.set(k, v);
   await page.goto(`/?${params.toString()}`);
 
   // Wait for the login button to appear
@@ -538,6 +539,39 @@ async function switchToDevice(page: Page, dbName: string): Promise<void> {
   await waitForBridge(page);
 }
 
+/**
+ * Collect error-level console messages and page errors for the life of the
+ * page. Decryption failures and other silent data-loss bugs surface only as
+ * console errors — specs that assert `expectNone()` catch them even when
+ * every functional assertion passes.
+ *
+ *   const console_ = collectConsoleErrors(page, { ignore: [/favicon/] });
+ *   ... exercise the app ...
+ *   console_.expectNone("reload durability");
+ */
+function collectConsoleErrors(
+  page: Page,
+  opts: { ignore?: RegExp[] } = {},
+): { errors: string[]; expectNone(label: string): void } {
+  const errors: string[] = [];
+  const ignore = opts.ignore ?? [];
+  page.on("console", (msg) => {
+    if (msg.type() !== "error") return;
+    const text = msg.text();
+    if (!ignore.some((re) => re.test(text))) errors.push(text);
+  });
+  page.on("pageerror", (err) => {
+    const text = `pageerror: ${err.message}`;
+    if (!ignore.some((re) => re.test(text))) errors.push(text);
+  });
+  return {
+    errors,
+    expectNone(label: string) {
+      expect(errors, `${label}: unexpected console errors`).toEqual([]);
+    },
+  };
+}
+
 export {
   expect,
   bridge,
@@ -549,6 +583,7 @@ export {
   setupSharedSpace,
   removeMember,
   switchToDevice,
+  collectConsoleErrors,
   COMPOSE_CMD,
   PROJECT_ROOT,
 };

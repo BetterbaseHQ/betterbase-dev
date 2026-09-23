@@ -107,6 +107,12 @@ export interface TestAPI {
   rotateSpaceKey(spaceId: string): Promise<void>;
   getSpaceEpoch(spaceId: string): number | null;
 
+  // Session durability introspection
+  /** Personal-space epoch label + when it was advanced (null = never). */
+  getEpochInfo(): { epoch: number | null; advancedAt: number | null };
+  /** Outcome of the ?putAtReady= armed write (fired at first ready). */
+  getArmedPutStatus(): { armed: boolean; fired: boolean; id?: string; error?: string };
+
   // Utility
   getSpaceForRecord(collection: string, recordId: string): Promise<string>;
 
@@ -149,10 +155,27 @@ interface TestBridgeProps {
     personalSpaceId: string | null;
     encryptionKey: CryptoKey | null;
     keypair: { privateKeyJwk: JsonWebKey; publicKeyJwk: JsonWebKey } | null;
+    session?: {
+      getEpoch?: () => number | undefined;
+      getEpochAdvancedAt?: () => number | undefined;
+    } | null;
   };
+  putAtReady?: { collection: string; data: Record<string, unknown> } | null;
 }
 
-export function TestBridge({ auth }: TestBridgeProps) {
+// ---------------------------------------------------------------------------
+// Armed put-at-ready (?putAtReady=) — module state so it survives the
+// provider's internal remounts (engine rebuilds reset component refs, but a
+// reload re-evaluates the module fresh).
+// ---------------------------------------------------------------------------
+
+let armedPutDone = false;
+let armedPutStatus: { armed: boolean; fired: boolean; id?: string; error?: string } = {
+  armed: false,
+  fired: false,
+};
+
+export function TestBridge({ auth, putAtReady = null }: TestBridgeProps) {
   const db = useSyncDb();
   const sync = useSync();
   const spaces = useSpaces();
@@ -162,6 +185,37 @@ export function TestBridge({ auth }: TestBridgeProps) {
   const spaceManager = useSpaceManager();
   const presenceManager = usePresenceManager();
   const eventManager = useEventManager();
+
+  if (putAtReady && !armedPutStatus.armed) {
+    armedPutStatus = { armed: true, fired: false };
+  }
+
+  // Fire the armed write the moment sync first reports ready — before any
+  // settle delay, inside the same transition window where real apps write
+  // (auto-created defaults, pending drafts). This is the window where a
+  // mislabeled epoch or a racing engine rebuild strands data.
+  useEffect(() => {
+    if (!putAtReady || armedPutDone) return;
+    if (sync.phase !== "ready") return;
+    armedPutDone = true;
+    // Consume-once: never re-arm on reload/device switch
+    sessionStorage.removeItem("betterbase-e2e-putAtReady");
+    const def = resolveCollection(putAtReady.collection);
+    (db as unknown as { put: (d: unknown, data: unknown) => Promise<{ id: string }> })
+      .put(def, putAtReady.data)
+      .then(
+        (record) => {
+          armedPutStatus = { armed: true, fired: true, id: record.id };
+        },
+        (err) => {
+          armedPutStatus = {
+            armed: true,
+            fired: true,
+            error: err instanceof Error ? err.message : String(err),
+          };
+        },
+      );
+  }, [sync.phase, putAtReady, db]);
 
   // Cache shared-space FileStores to avoid recreating
   const sharedFileStoresRef = useRef(new Map<string, FileStore>());
@@ -463,6 +517,18 @@ export function TestBridge({ auth }: TestBridgeProps) {
 
       getSpaceEpoch(spaceId: string): number | null {
         return spaceManager.getSpaceEpoch(spaceId) ?? null;
+      },
+
+      // -- Session durability --
+      getEpochInfo() {
+        return {
+          epoch: auth.session?.getEpoch?.() ?? null,
+          advancedAt: auth.session?.getEpochAdvancedAt?.() ?? null,
+        };
+      },
+
+      getArmedPutStatus() {
+        return { ...armedPutStatus };
       },
 
       // -- Utility --

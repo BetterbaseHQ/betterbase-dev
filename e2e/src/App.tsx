@@ -14,10 +14,28 @@ import { TestBridge } from "./bridge";
 const DEFAULT_CLIENT_ID = import.meta.env.VITE_OAUTH_CLIENT_ID || "";
 const DEFAULT_DOMAIN = import.meta.env.VITE_DOMAIN || "localhost:25377";
 
+/** A record the harness writes the moment sync first reports ready. */
+interface ArmedPut {
+  collection: string;
+  data: Record<string, unknown>;
+}
+
 interface AppConfig {
   dbName: string;
   clientId: string;
   domain: string;
+  putAtReady: ArmedPut | null;
+}
+
+function parsePutAtReady(raw: string | null): ArmedPut | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { collection?: string; data?: Record<string, unknown> };
+    if (!parsed.collection || typeof parsed.data !== "object") return null;
+    return { collection: parsed.collection, data: parsed.data };
+  } catch {
+    return null;
+  }
 }
 
 function getConfig(): AppConfig {
@@ -27,16 +45,26 @@ function getConfig(): AppConfig {
   const urlDb = params.get("db");
   const urlClientId = params.get("clientId");
   const urlDomain = params.get("domain");
+  const urlPutAtReady = params.get("putAtReady");
 
-  // Persist across OAuth redirects (which strip query params)
+  // Persist across OAuth redirects (which strip query params). putAtReady is
+  // consumed-once: the harness clears the persisted value when the write
+  // fires, so reloads and device switches do not re-arm it.
   if (urlDb) sessionStorage.setItem("betterbase-e2e-db", urlDb);
   if (urlClientId) sessionStorage.setItem("betterbase-e2e-clientId", urlClientId);
   if (urlDomain) sessionStorage.setItem("betterbase-e2e-domain", urlDomain);
+  if (urlPutAtReady !== null)
+    sessionStorage.setItem("betterbase-e2e-putAtReady", urlPutAtReady);
 
   return {
     dbName: urlDb || sessionStorage.getItem("betterbase-e2e-db") || "betterbase-e2e",
-    clientId: urlClientId || sessionStorage.getItem("betterbase-e2e-clientId") || DEFAULT_CLIENT_ID,
-    domain: urlDomain || sessionStorage.getItem("betterbase-e2e-domain") || DEFAULT_DOMAIN,
+    clientId:
+      urlClientId || sessionStorage.getItem("betterbase-e2e-clientId") || DEFAULT_CLIENT_ID,
+    domain:
+      urlDomain || sessionStorage.getItem("betterbase-e2e-domain") || DEFAULT_DOMAIN,
+    putAtReady: parsePutAtReady(
+      urlPutAtReady ?? sessionStorage.getItem("betterbase-e2e-putAtReady"),
+    ),
   };
 }
 
@@ -134,10 +162,16 @@ function AuthLayer({
 // SyncGate — waits for sync infrastructure before mounting TestBridge
 // ---------------------------------------------------------------------------
 
-function SyncGate({ auth }: { auth: AuthContextValue }) {
+function SyncGate({
+  auth,
+  putAtReady,
+}: {
+  auth: AuthContextValue;
+  putAtReady: ArmedPut | null;
+}) {
   const ready = useSyncReady();
   if (!ready) return <div id="status">initializing-sync</div>;
-  return <TestBridge auth={auth} />;
+  return <TestBridge auth={auth} putAtReady={putAtReady} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -169,7 +203,7 @@ function SyncLayer({
       domain={config.domain}
       onAuthError={logout}
     >
-      <SyncGate auth={auth} />
+      <SyncGate auth={auth} putAtReady={config.putAtReady} />
     </BetterbaseProvider>
   );
 }
