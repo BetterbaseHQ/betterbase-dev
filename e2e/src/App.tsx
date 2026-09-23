@@ -100,7 +100,7 @@ function AuthLayer({
             clientId: config.clientId,
             redirectUri: window.location.origin + "/",
             domain: config.domain,
-            scope: "openid email sync files",
+            scope: "openid sync files",
           })
         : null,
     [config.clientId, config.domain],
