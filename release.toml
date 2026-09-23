@@ -7,9 +7,9 @@
 # The betterbase-dev commit containing this file is the release commit.
 
 [components]
-betterbase = "77bf06746224fbfe0686aa37f2913b05ce3bc1f8"
+betterbase = "aee3c899c429fbf8b62f7542c331413acad82ac9"
 betterbase-accounts = "9915307d321171d930b7d61a210e02376a26a649"
 betterbase-sync = "a333b3590fb208c527e058118b6dc7170c69bdb7"
 betterbase-inference = "819031838e117595cfea13cba3ef3b878109dd59"
-betterbase-examples = "76889e8a62af98305274d859e588b5592ca30ed6"
+betterbase-examples = "b2000e888c25e49ac808e09ac40cfd00d9e6f492"
 json-joy-rs = "410e199748be7a9b18de3026e090bd9a7e737290"
