@@ -47,7 +47,10 @@ function project(records: Array<Record<string, unknown>>): string {
 async function readAll(page: Page) {
   return bridge(page, async (api) => {
     const items = await api.query("items");
-    const notes = await api.query("notes");
+    const notes = (await api.query("notes")).map((r) => ({
+      ...r,
+      body: (r.body as string | undefined) ?? null,
+    }));
     return { items, notes };
   });
 }

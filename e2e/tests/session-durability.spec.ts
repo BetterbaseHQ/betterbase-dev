@@ -59,8 +59,9 @@ test.describe("Session durability", () => {
         },
         { timeout: 30_000 },
       );
-      expect(armed.fired).toBe(true);
-      expect(armed.error, "armed put failed").toBeUndefined();
+      expect(armed, "armed put never fired").not.toBeNull();
+      expect(armed!.fired).toBe(true);
+      expect(armed!.error, "armed put failed").toBeUndefined();
 
       // Bootstrap settles; the record is local and pushed
       await bridge(page, (api) => api.waitForSync());
