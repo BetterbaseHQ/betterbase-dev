@@ -90,6 +90,9 @@ services:
     ports:
       - "25379:5379"
     environment:
+      # The sync server's tracing defaults to error-only when RUST_LOG is
+      # unset; e2e debugging and log tripwires need at least warn.
+      - RUST_LOG=info
       - DATABASE_URL=postgres://${SYNC_DB_USER:-sync}:${SYNC_DB_PASSWORD:-sync}@sync-db:5432/${SYNC_DB_NAME:-sync}?sslmode=disable
       # Trust both accounts servers (Server A + Server B)
       - TRUSTED_ISSUERS=http://localhost:25377=http://accounts:5377/.well-known/jwks.json http://localhost:25387=http://accounts-b:5377/.well-known/jwks.json
