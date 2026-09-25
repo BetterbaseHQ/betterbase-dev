@@ -788,3 +788,14 @@ e2e *args:
     just e2e-setup
     just e2e-test {{args}}
     just e2e-faults
+
+# SDK↔server integration suite: real SDK clients (headless chromium, full
+# wasm/crypto fidelity) against the e2e stack. Boots the stack if needed,
+# registers the harness OAuth client, and runs vitest from betterbase/js.
+# Self-skips when the stack cannot start. Scenarios share the stack, so the
+# suite runs serially (see vitest.integration.config.ts).
+sdk-integration *args:
+    #!/usr/bin/env bash
+    set -e
+    just e2e-up
+    cd betterbase/js && pnpm vitest run --config vitest.integration.config.ts {{args}}
