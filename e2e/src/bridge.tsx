@@ -18,7 +18,7 @@ import {
   type SpaceRecord,
   type SpaceFields,
   type Member,
-} from "betterbase/sync";
+, InMemoryFileStorage } from "betterbase/sync";
 import { encodeDIDKeyFromJwk } from "betterbase/crypto";
 import { items, notes } from "./collections";
 import type { CollectionDef } from "betterbase/db";
@@ -250,8 +250,9 @@ export function TestBridge({ auth, putAtReady = null }: TestBridgeProps) {
 
     const filesClient = new FilesClient(syncClient);
 
+    // Ephemeral per-space stores — the harness re-uploads each run.
     const store = new FileStore({
-      dbName: `betterbase-file-cache-${spaceId}`,
+      storage: new InMemoryFileStorage(),
     });
     await store.connect({
       filesClient,

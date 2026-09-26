@@ -3,6 +3,10 @@ import { OAuthClient } from "betterbase/auth";
 import { useAuth as useAuthBase } from "betterbase/auth/react";
 import { createDatabase, type Database } from "betterbase/db";
 import { BetterbaseProvider, useSyncReady } from "betterbase/sync/react";
+import { FileStore, InMemoryFileStorage } from "betterbase/sync";
+
+// The harness exercises record sync, not files — an ephemeral store.
+const e2eFileStore = new FileStore({ storage: new InMemoryFileStorage() });
 import { spaces } from "betterbase/sync";
 import { items, notes } from "./collections";
 import { TestBridge } from "./bridge";
@@ -196,6 +200,7 @@ function SyncLayer({
   return (
     <BetterbaseProvider
       adapter={db}
+      fileStore={e2eFileStore}
       collections={[items, notes]}
       editChainCollections={["items"]}
       session={session}
