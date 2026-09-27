@@ -18,7 +18,7 @@ import {
   type SpaceRecord,
   type SpaceFields,
   type Member,
-, InMemoryFileStorage } from "betterbase/sync";
+  InMemoryFileStorage } from "betterbase/sync";
 import { encodeDIDKeyFromJwk } from "betterbase/crypto";
 import { items, notes } from "./collections";
 import type { CollectionDef } from "betterbase/db";
