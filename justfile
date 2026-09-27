@@ -118,6 +118,9 @@ check-all:
     @echo ""
     @echo "=== Checking chat app ==="
     cd ./betterbase-examples/chat && pnpm check
+    @echo ""
+    @echo "=== Checking ai-chat app ==="
+    cd ./betterbase-examples/ai-chat && pnpm check
 
 # Full platform gate: all repo checks plus the platform E2E cycle (requires Docker)
 check-platform:
@@ -475,6 +478,8 @@ health:
     @curl -sf http://localhost:5385/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
     @echo "Checking passwords..."
     @curl -sf http://localhost:5387/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
+    @echo "Checking ai-chat..."
+    @curl -sf http://localhost:5386/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
 
 # Wait for core services (accounts + sync) to be healthy
 wait:
@@ -560,6 +565,10 @@ setup-passwords:
 setup-chat:
     just setup-example chat 5385 sync
 
+# Set up ai-chat app OAuth client (portal only — inference runs in the browser)
+setup-ai-chat:
+    just setup-example ai-chat 5386
+
 # Set up all example apps
 setup-examples:
     just setup-launchpad
@@ -569,6 +578,7 @@ setup-examples:
     just setup-board
     just setup-passwords
     just setup-chat
+    just setup-ai-chat
 
 # =============================================================================
 # E2E Tests (Playwright browser tests)

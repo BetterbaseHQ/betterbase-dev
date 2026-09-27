@@ -29,7 +29,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 upsert_root_env() {
     local root_env="$PROJECT_ROOT/.env"
     local var
-    var="$(echo "$APP_NAME" | tr '[:lower:]' '[:upper:]')_CLIENT_ID"
+    var="$(echo "$APP_NAME" | tr '[:lower:]-' '[:upper:]_')_CLIENT_ID"
     [ -f "$root_env" ] || return 0
     if grep -q "^$var=" "$root_env" 2>/dev/null; then
         sed -i '' "s|^$var=.*|$var=$1|" "$root_env" 2>/dev/null || \

@@ -172,6 +172,22 @@ services:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5385/"]
       start_period: 20s
 
+  ai-chat:
+    build:
+      context: .
+      dockerfile: ./betterbase-examples/ai-chat/Dockerfile.dev
+    volumes:
+      - ./betterbase-examples/ai-chat:/workspace/examples/ai-chat
+      - /workspace/examples/ai-chat/node_modules
+    ports:
+      - "5386:5386"
+    environment:
+      - ACCOUNTS_URL=http://accounts:5377
+      - SYNC_URL=http://sync:5379
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5386/"]
+      start_period: 20s
+
 volumes:
   dev_accounts_db_data:
   dev_sync_db_data:

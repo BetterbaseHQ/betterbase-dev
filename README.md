@@ -149,6 +149,7 @@ betterbase-dev/                        # You are here
 │   ├── photos/                        #   Photo sharing with encrypted file storage
 │   ├── board/                         #   Collaborative board
 │   ├── chat/                          #   Encrypted messaging
+│   ├── ai-chat/                       #   Local in-browser LLM chat (WebGPU)
 │   └── shared/                        #   @betterbase/examples-shared
 ├── e2e/                               # Playwright browser tests (isolated compose project)
 │   └── compose.yaml                   # E2E test stack (own project + ports 253xx)
