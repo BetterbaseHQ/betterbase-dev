@@ -565,9 +565,10 @@ setup-passwords:
 setup-chat:
     just setup-example chat 5385 sync
 
-# Set up ai-chat app OAuth client (portal only — inference runs in the browser)
+# Set up ai-chat app OAuth client (sync — chats sync E2EE across devices;
+# inference itself runs locally in the browser)
 setup-ai-chat:
-    just setup-example ai-chat 5386
+    just setup-example ai-chat 5386 sync
 
 # Set up all example apps
 setup-examples:
