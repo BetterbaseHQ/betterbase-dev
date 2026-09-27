@@ -324,9 +324,11 @@ _ensure-cap-key:
 dev-logs *args:
     {{dev_compose}} logs -f {{args}}
 
-# Rebuild dev containers (after Dockerfile.dev or dependency changes)
+# Rebuild dev containers (after Dockerfile.dev or dependency changes).
+# --renew-anon-volumes is the point: node_modules lives in anonymous
+# volumes, which would otherwise survive the rebuild and stay stale.
 dev-rebuild:
-    {{dev_compose}} build && {{dev_compose}} up
+    {{dev_compose}} build && {{dev_compose}} up --renew-anon-volumes
 
 # Stop dev environment and remove volumes (DB data is ephemeral in dev)
 dev-down:
