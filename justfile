@@ -126,6 +126,7 @@ check-all:
 check-platform:
     just check-all
     just e2e
+    just sdk-integration
 
 # =============================================================================
 # Release Pinning & Backup (AUD-058)
@@ -805,10 +806,10 @@ e2e *args:
 # SDK↔server integration suite: real SDK clients (headless chromium, full
 # wasm/crypto fidelity) against the e2e stack. Boots the stack if needed,
 # registers the harness OAuth client, and runs vitest from betterbase/js.
-# Self-skips when the stack cannot start. Scenarios share the stack, so the
+# Fails if the stack or OAuth harness is unavailable. Scenarios share the stack, so the
 # suite runs serially (see vitest.integration.config.ts).
 sdk-integration *args:
     #!/usr/bin/env bash
     set -e
     just e2e-up
-    cd betterbase/js && pnpm vitest run --config vitest.integration.config.ts {{args}}
+    cd betterbase/js && pnpm typecheck && BB_INTEGRATION_REQUIRED=1 pnpm vitest run --config vitest.integration.config.ts {{args}}

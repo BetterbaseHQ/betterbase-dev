@@ -44,7 +44,7 @@ just prod-build   # Build and start production
 just down         # Stop services
 
 just check-all      # Run checks: SDK, accounts, sync, inference, json-joy-rs, all examples
-just check-platform # check-all + the full platform E2E cycle (requires Docker)
+just check-platform # check-all + platform E2E + SDK/server integration (requires Docker)
 
 just health       # Check service health
 just wait         # Wait for services to become healthy
@@ -65,6 +65,7 @@ Per-repo development checks live in each repo (`cd betterbase-accounts && just c
 
 ```bash
 just e2e-setup    # Start e2e services + exchange federation keys + create OAuth clients
+just sdk-integration # Real SDK/WASM clients against accounts + sync; required stack, no silent skips
 just e2e-test     # Run Playwright tests (services must be running via e2e-setup)
 just e2e-faults   # Fault-injection phase: real server restarts (single worker, gated spec)
 just e2e          # Full cycle: clean → setup → test → faults
