@@ -17,6 +17,12 @@ services:
     environment:
       - SMTP_DEV_MODE=true
       - SMTP_FROM=noreply@localhost
+      # CAP disabled in dev: the CAP container is internal-only and, with
+      # Caddy off (direct ports), nothing serves /cap/* — signup would demand
+      # a proof it can't fetch. Prod exercises CAP through Caddy; the e2e
+      # stack disables it for the same reason.
+      - CAP_KEY_ID=
+      - CAP_SECRET=
       # Override endpoints so discovery returns browser-reachable URLs
       - OAUTH_ISSUER=http://localhost:5377
       - SYNC_ENDPOINT=http://localhost:5379/api/v1
