@@ -192,79 +192,169 @@ are the objective, storage is the price.
 ## Method
 
 - Two profiles, 100k records each, lognormal mixtures (the standard
-  file-size model), fixed seeds:
+  file-size model), fixed seeds (`SEED=<hex>` env overrides for
+  stability checks; numbers below are seed `0x51a1`/`0xbe5c`):
   - **typical app**: 72% small (~1.2KB median) / 18% medium (~25KB) /
     8% large (~250KB) / 2% huge (~1.5MB, embedded docs) — 80% of bytes
     in the ≥256K tail.
   - **messenger-style**: 95% small / 4.5% medium / 0.5% large, no tail.
 - Schemes: no padding; current 4× ladder (max 1MB); 4× extended to the
-  5MB cap; next-power-of-2; Padmé; two hybrids (4× below a cutoff,
-  Padmé above).
+  cap; next-power-of-2; pow2 with 4× jumps over the tail (@1M, @2M);
+  Padmé; two hybrids (4× below a cutoff, Padmé above).
+- **Transport constraints, as enforced in production** (verified in
+  source): the server validates the *stored ciphertext blob* (padded
+  payload + 13 bytes) ≤ 5MB, so the largest safe bucket is
+  **5,242,867** (= 5MB − 13; buckets already include the 4-byte length
+  prefix); separately, the WS transport caps
+  messages at **4 MiB**, so any bucket ≥ 4 MiB produces blobs that
+  exceed it today. The sim reports both: `unpush` = over the 5MB blob
+  check (never pushable); `ws-strand` = legal per the 5MB check but over
+  the 4 MiB WS cap (pushable only after raising `WS_MAX_MESSAGE_SIZE`).
 - Leak metrics: distinct observable size classes (observer resolution);
-  k-anonymity — fraction of records whose padded size is shared by ≥5/50/
-  500 others; **tail-anonymity** — median occupancy of the size classes
-  that ≥1MB records land in (how crowded the hiding spots are for the
-  sensitive embedded-doc records).
-- Cost metrics: stored bytes (inflation vs each scheme's own pushable
-  raw), unpushable records.
+  k-anonymity at k ≥ 500 (fraction of records whose padded size is
+  shared by ≥500 others); **tail occupancy min / p10 / median** — the
+  per-record occupancy distribution among ≥1MB records (the worst-off
+  classes matter more than the median when the sensitive records are
+  rare); per-class occupancy detail for ≥1MB classes.
+- Cost metrics: mean inflation vs each scheme's own pushable raw bytes;
+  per-record overhead p95 (means hide near-boundary worst cases);
+  unpushable and WS-stranded counts.
 
 ## Results (typical app; 80% of bytes in the tail)
 
-| scheme | classes | k≥50 | k≥500 | tail-anon | storage |
-|---|---|---|---|---|---|
-| none | 31,384 | 1% | 0% | 1 | baseline |
-| current 4× (1M) | 7 | 100% | 100% | — (unpushable) | +99% |
-| extended 4× (5M) | 9 | 100% | 100% | **1,578** | **+105%** |
-| pow2 (to 5M cap) | 16 | 100% | 100% | **1,076** | **+42%** |
-| **pow2 + 4× tail @1M** | 15 | 100% | 100% | **1,578** | **+75%** |
-| pow2 + 4× tail @2M | 15 | 100% | 100% | 1,076 | +50% |
-| padmé | 352 | 98% | 65% | **30** | +1% |
-| hybrid 16k+padmé | 236 | 98% | 78% | 30 | +4% |
-| hybrid 256k+padmé | 142 | 98% | 94% | 30 | +20% |
+| scheme | classes | k≥500 | tail min | tail p10 | tail med | inflat | p95 | unpush | ws-strand |
+|---|---|---|---|---|---|---|---|---|---|
+| none | 31,384 | 0% | 1 | 1 | 1 | baseline | 0% | 46 | 50 |
+| current 4× (1M) | 7 | 100% | — | — | — (unpushable) | +99% | +269% | 1,674 | 0 |
+| extended 4× | 9 | 100% | 50 | 1,578 | 1,578 | +105% | +270% | 46 | 1,628 |
+| pow2 (to cap) | 16 | 100% | 50 | 502 | 1,076 | **+42%** | +92% | 46 | 552 |
+| pow2 + 4× tail @1M | 15 | 100% | 50 | 1,578 | 1,578 | +75% | +94% | 46 | 1,628 |
+| **pow2 + 4× tail @2M** | 15 | 100% | **552** | **552** | 1,076 | +50% | +93% | 46 | 552 |
+| padmé | 351 | 65% | 3 | 12 | 30 | +1% | +5% | 49 | 52 |
+| hybrid 16k+padmé | 235 | 78% | 3 | 12 | 30 | +4% | +260% | 49 | 52 |
+| hybrid 256k+padmé | 141 | 94% | 3 | 12 | 30 | +20% | +267% | 49 | 52 |
 
-Messenger-style (no tail): pow2 +44% storage; the tail hybrids are
-byte-identical to pow2 (coarsening above 1M never triggers); padmé +2%
-with 99% k≥50 / 89% k≥500.
+≥1MB class detail (bytes:occupancy): pow2 = 2M:1,076 / 4M:502 /
+5,242,880:50; @2M = 2M:1,076 / 5,242,880:552 (the 4M and 5.25M classes
+merge); extended 4× and @1M = 4M:1,578 / 5,242,880:50; padmé = 71
+classes of 3–67.
+
+Messenger-style (no tail): pow2 +44% (p95 +92%); the tail hybrids are
+byte-identical to pow2 (coarsening never triggers); padmé +2% with 89%
+k≥500. Nothing is WS-stranded (no record exceeds 4 MiB).
+
+Multi-seed stability (3 extra seeds): pow2 tail min 44–58 / med
+1,076–1,160; @2M tail min 537–609; padmé tail med 30–33; inflation
+within ±1pp — conclusions are not seed artifacts. An independent expert
+reimplementation (different RNG) reproduced every headline number within
+Monte-Carlo noise.
 
 ## Findings
 
-1. **For the sensitive tail, coarse buckets are the privacy-maximal
-   choice, and Padmé is a real regression.** With ~2k embedded-doc
-   records in the population, Padmé's fine granularity spreads them over
-   ~70 size classes (~30 records each); the 4× ladder concentrates them
-   into crowds of ~1,578; pow2 ~1,076. Per-user the effect is starker:
-   a user's own ≥1MB records are few, so Padmé's tail anonymity is
-   effectively 1–2 at the per-user level.
-2. **For the small-record majority, every coarse ladder is strictly more
-   private than Padmé** (100% k≥500 vs 65–94%). Padmé's benefit is
-   almost entirely storage, not privacy.
-3. **The hybrids are a storage-first construct and dissolve under a
-   privacy-first frame.** Putting Padmé on the large records saves the
-   most bytes exactly where sensitivity concentrates. A privacy-first
-   "hybrid" (coarse high, fine low) is just… a coarse ladder.
-4. **The balanced privacy-first option is next-pow-2 extended to the cap:
-   +44% storage with k≥500 at 100% and tail-anon >1,000.** The maximal
-   privacy option is the current 4× coarseness extended to 5MB (+105%,
-   tail-anon 1,578). Both fix today's real defect: the 1MB default
-   ladder makes ~1.7% of records (including the whole embedded-doc
-   class) unpushable.
-5. **A pow2 base with 4× jumps over the tail (no 2MB bucket) gets the
-   maximal tail crowds at a mid price: tail-anon 1,578 at +75%.** It is
-   byte-identical to plain pow2 for apps with no ≥1MB records — the
-   coarsening costs nothing unless a tail exists. Note the knob's
-   placement matters: coarsening from 1M captures the huge-class median
-   (~1.5MB in this model); coarsening from 2M left the median tail
-   metric unchanged (it only crowds the upper tail). Where to place the
-   jump should be driven by measured embedded-doc sizes.
+1. **The ordering is a theorem, not a simulation result: every Padmé
+   class nests inside a single pow-2 bucket** (Padmé's granularity
+   2^(E−S) divides 2^E, by construction). So per-record class occupancy
+   under pow2 ≥ under Padmé *pointwise, for every record and every
+   distribution* — consistent with the paper's own finding that Padmé
+   leaks ~2× the bits of next-pow-2. Coarse ladders are the cheapest
+   privacy per byte on the storage/leakage frontier; Padmé's advantage
+   is storage, never privacy. This holds for the 4× ladder a fortiori.
+2. **The sensitive tail: Padmé is a real regression, coarse is right —
+   and the differential is trajectory leakage, not just class size.**
+   Padmé spreads the ~2k embedded-doc records over ~71 classes of
+   3–67 (tail med 30); the coarse ladders crowd the median doc into
+   1,076–1,578. Because a lone tail record has k=1 under *any* scheme,
+   the per-user argument alone is not differential; what is
+   differential: (a) cross-user population k (a server correlating
+   content-type hints across users), where coarse wins by the theorem
+   above; and (b) growth trajectories — a doc growing 100KB→3.7MB over
+   400 edits yields ~302 observable size changes across ~149 distinct
+   sizes under Padmé vs ~7 under pow2 and ~2 under a 4× tail (measured
+   in the independent review): Padmé turns a document's life into a
+   fine-grained progress bar for the honest-but-curious server.
+3. **The @2M hybrid is the worst-case winner — the metric matters.**
+   Every scheme with a 4M and a 5.25M class puts the >4MB records in a
+   ~50-record class: a small, *a priori identifiable* "huge document"
+   class (the compression bench confirms such docs exist — doc-60000 is
+   3.8MB). Merging those classes (@2M: drop the 4M bucket) lifts the
+   worst-off tail class from ~50 to ~552 at +8pp storage over plain
+   pow2 — invisible to the median (which stays 1,076) but decisive for
+   min/p10. The real choice among pow2 / @1M / @2M is cheapest /
+   max median crowd / max worst-case crowd.
+4. **The balanced privacy-first default is pow-2 extended to the cap:
+   +42% storage, k≥500 at 100%, tail med >1,000.** Max median-crowd
+   privacy is extended 4× (+105%, tail med 1,578). Both fix today's
+   defect that the 1MB default ladder strands ~1.7% of records
+   (the whole embedded-doc class). Mean inflation ~1/ln 2 − 1 ≈ +44%
+   per record under log-spread (the paper measured 43–47% on four real
+   datasets; our totals-based estimator idealizes to 2·ln 2 − 1 ≈
+   +38.6%, and lands at 42–44% because real within-bucket mass tilts
+   toward bucket bottoms).
+5. **Any ladder beyond 2 MiB requires raising `WS_MAX_MESSAGE_SIZE`
+   first.** The server's 5MB check applies to the stored blob (bucket
+   + 13), so the top bucket must be 5,242,867 — but the WS transport
+   caps messages at 4 MiB, and the 4 MiB bucket's blobs (4,194,317B)
+   already exceed it. Until the WS cap is raised (≥ 5MB + ε), every
+   scheme strands all >2 MiB records (pow2: 552/100k; extended 4× and
+   @1M: ~1,630/100k in the ws-strand column). Raising it is a small,
+   versioned server/transport change and the explicit precondition for
+   this ladder change. Ladder changes remain client-only otherwise
+   (`unpad` is ladder-independent).
+6. **Ladder uniformity is itself a privacy property.** Padded sizes are
+   per-transport config, but Padmé sizes almost never coincide with
+   pow2 buckets: apps overriding to a different ladder fragment the
+   crowds every scheme relies on. One platform-wide default; treat
+   overrides as privacy-affecting config. Cold-start also applies — at
+   ~1k records even pow2's 2M class holds ~10.
+7. **Sequencing with compression.** The companion bench's zstd-L3
+   recommendation shrinks the embedded-doc class 0.43–0.62× (doc-20000:
+   1.19MB → 762KB), which moves the tail median below 1MB and changes
+   which bucket the median doc lands in. The two decisions were
+   evaluated on different payload distributions; if compression ships,
+   re-run this sim on the post-compression distribution (and note
+   compression makes size more content-dependent) before freezing tail
+   placement.
+
+## Recommendation
+
+Adopt **pow-2 extended to the cap, top bucket 5,242,867** as the
+platform default — cheapest scheme with 100% k≥500 and tail med >1,000 —
+**conditional on**:
+
+1. Raising `WS_MAX_MESSAGE_SIZE` ≥ 5MB + ε (else the ladder effectively
+   tops at 2 MiB and the >2 MiB stranding stays open, honestly labeled).
+2. Deciding plain-pow2 vs @2M-tail explicitly as a risk-appetite call
+   (worst-off class ~50 vs ~552, +8pp storage), informed by measured
+   embedded-doc sizes — measure before freezing placement; the sim's
+   1.5MB tail median is a model assumption, and @1M-vs-@2M effects are
+   sensitive to it (tail median at 3MB or σ 1.0 changes absolute crowds
+   ±35% but not the family ordering).
+3. Re-running tail placement on the post-compression distribution if
+   zstd-L3 ships.
+
+If a future ≥2MB class becomes the sensitivity bottleneck, the
+architectural answer is fixed-size chunking (pad only the final chunk;
+observable becomes chunk count, tail overhead ~chunk/2 ≈ 8% at 256KB
+chunks) — requires multi-blob records and wire changes; a design note,
+not a near-term option. Record-slot linkage is trivial for the server
+regardless of padding; size padding's job is content/activity inference,
+not linkage.
 
 ## Caveats
 
 - Anonymity sets are population-wide; real observers see per-app or
   per-user populations, so absolute k-anon is weaker everywhere — the
-  relative ordering is the robust takeaway.
-- All schemes leak size-class *transitions over time* (growth
-  trajectories); coarser ladders transition less often.
-- 46 of 100k simulated records exceeded the 5MB cap itself — a
+  relative ordering is the robust takeaway (and is a theorem, per
+  finding 1).
+- All schemes leak size-class transitions over time; coarser ladders
+  transition less often (finding 2b).
+- ~46 of 100k simulated records exceeded the 5MB cap itself — a
   record-design/app concern independent of padding.
-- Lognormal mixtures are a model; real embedded-doc distributions should
-  be measured before finalizing a ladder.
+- Lognormal mixtures are a model; sensitivity runs (tail median
+  0.8–3MB, σ 0.6–1.0, tail share 2–5%, bounded-Pareto tail) leave the
+  family ordering intact but swing absolute tail crowds ±35%. Measure
+  real embedded-doc sizes before freezing a ladder.
+- Methodology and results were reviewed by an independent expert
+  (independent reimplementation, trajectory and sensitivity analyses);
+  the caps, metrics, and hybrid presentation above incorporate that
+  review's findings.

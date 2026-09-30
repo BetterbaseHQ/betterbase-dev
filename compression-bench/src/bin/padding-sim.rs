@@ -5,17 +5,22 @@
 //! the objective inverted: privacy is the constraint, storage is the price.
 //!
 //! Leak metrics (primary):
-//!   classes    — distinct observable blob sizes (observer resolution)
-//!   k≥5/50/500 — fraction of records whose padded size is shared by at
-//!                least k records (k-anonymity on size; an observer cannot
-//!                distinguish records within a class)
-//!   tail-anon  — median size-class occupancy among records ≥1MB (the
-//!                sensitive embedded-doc tail: the smallest crowds the
-//!                large records get to hide in)
+//!   classes   — distinct observable blob sizes (observer resolution)
+//!   k≥500     — fraction of records whose padded size is shared by at
+//!               least 500 records (k-anonymity on size; an observer
+//!               cannot distinguish records within a class)
+//!   t-min/p10/med — per-record size-class occupancy among ≥1MB records
+//!               (the sensitive embedded-doc tail), reported as min /
+//!               p10 / median: the worst-off classes matter more than
+//!               the median when the sensitive records are rare
 //!
 //! Cost metrics (secondary):
-//!   stored/inflat — total stored bytes vs unpadded baseline
-//!   unpush        — records the scheme cannot push (ladder overflow)
+//!   inflat/p95 — mean / p95 per-record overhead vs raw (padded+13 bytes
+//!               over payload+4+13), vs each scheme's own pushable bytes
+//!   unpush     — records whose blob exceeds the 5MB server check
+//!   ws-strand  — blobs legal per the 5MB check but over the 4 MiB WS
+//!               message cap (pushable only after WS_MAX_MESSAGE_SIZE
+//!               is raised)
 //!
 //! Schemes:
 //!   none         — exact lengths (what encryption alone gives you)
@@ -34,7 +39,10 @@
 //!
 //! Run: cargo run --release --bin padding-sim
 
-const CAP: usize = 5 * 1024 * 1024; // server per-blob limit
+const CAP: usize = 5 * 1024 * 1024; // server per-BLOB limit (verified: checks
+                                    //                                     stored ciphertext = padded + 13 bytes)
+const WS_CAP: usize = 4 * 1024 * 1024; // WS max message size (today; a ladder
+                                       //                                        raise beyond 2 MiB requires raising it)
 const ENC_OVERHEAD: usize = 13; // v4: version byte + IV + GCM tag
 const N: usize = 100_000;
 
@@ -67,29 +75,35 @@ impl Rng {
 // ── Padding schemes ──────────────────────────────────────────────────────────
 
 const CURRENT: &[usize] = &[256, 1024, 4096, 16384, 65536, 262144, 1048576];
+// Top bucket = CAP − ENC_OVERHEAD = 5MB − 13 (buckets already include
+// the 4-byte length prefix: payload+4 ≤ b): the server validates the
+// stored blob, so this bucket's blob is exactly CAP.
+const TOP_BUCKET: usize = 5_242_867;
 const EXTENDED4X: &[usize] = &[
-    256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 5242888,
+    256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, TOP_BUCKET,
 ];
 
-/// Pow-2 ladder ending at the 5MB cap. Note: no 8MB bucket — a blob padded
-/// past 5MB would be rejected by the server's per-blob validation, so the
-/// final bucket must be 5_242_880 (5MB + headroom for the length prefix).
+/// Pow-2 ladder ending at the blob-safe top bucket. NOTE: the 4 MiB bucket
+/// produces blobs of 4,194,317 bytes — 13 over today's 4 MiB WS message cap —
+/// so until WS_MAX_MESSAGE_SIZE is raised, records landing there are stranded
+/// (reported in the ws-strand column, not unpush).
 const POW2: &[usize] = &[
-    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144,
-    524288, 1048576, 2097152, 4194304, 5242888,
+    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
+    2097152, 4194304, TOP_BUCKET,
 ];
 
 /// Hybrid: pow-2 up to 1MB, then 4×-style jumps over the tail (no 2MB
 /// bucket) — extra coarseness spent only where records are rare/sensitive.
 const POW2_POW4_TAIL_1M: &[usize] = &[
-    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144,
-    524288, 1048576, 4194304, 5242888,
+    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
+    4194304, TOP_BUCKET,
 ];
 
-/// Same idea, coarsening starting at 2MB instead (one fewer 4× jump).
+/// Same idea, coarsening starting at 2MB instead (merges the 4M and top
+/// classes — maximizes the worst-case tail crowd).
 const POW2_POW4_TAIL_2M: &[usize] = &[
-    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144,
-    524288, 1048576, 2097152, 5242888,
+    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
+    2097152, TOP_BUCKET,
 ];
 
 fn bucket(payload: usize, buckets: &[usize]) -> Option<usize> {
@@ -100,8 +114,13 @@ fn bucket(payload: usize, buckets: &[usize]) -> Option<usize> {
 /// E = ⌊log₂ L⌋, S = bit-length of E. Max +12%, decreasing with size.
 fn padme(payload: usize) -> usize {
     let l = (payload + 4).max(1);
+    // L >= 4 in practice (min payload 16B in the sim); guard the exponent
+    // math anyway — e == 0 would underflow e - s in release builds.
+    if l < 4 {
+        return l;
+    }
     let e = (usize::BITS - 1 - l.leading_zeros()) as u32;
-    let s = if e == 0 { 1 } else { 32 - e.leading_zeros() };
+    let s = 32 - e.leading_zeros();
     let granularity = 1usize << (e - s);
     l.div_ceil(granularity) * granularity
 }
@@ -133,12 +152,9 @@ impl Scheme {
             Scheme::Hybrid256k => "hybrid 4x<=256k+padme",
         }
     }
-    /// Padded blob size (payload padded + encryption overhead), or None if
-    /// unpushable under this scheme (ladder overflow or over the cap).
+    /// Padded blob size (padded payload + encryption overhead), or None if
+    /// the blob exceeds the server's 5MB stored-blob validation.
     fn blob(self, payload: usize) -> Option<usize> {
-        if payload + 4 > CAP {
-            return None; // server rejects regardless of scheme
-        }
         let padded = match self {
             Scheme::None => payload + 4,
             Scheme::Current => bucket(payload, CURRENT)?,
@@ -162,7 +178,11 @@ impl Scheme {
                 }
             }
         };
-        Some(padded + ENC_OVERHEAD)
+        let blob = padded + ENC_OVERHEAD;
+        if blob > CAP {
+            return None; // server checks the stored blob (verified)
+        }
+        Some(blob)
     }
 }
 
@@ -196,16 +216,14 @@ fn sample(parts: Parts, rng: &mut Rng) -> Vec<usize> {
         .collect()
 }
 
-fn median(v: &mut [usize]) -> usize {
-    v.sort_unstable();
-    v[v.len() / 2]
-}
-
 fn run(name: &str, parts: Parts, seed: u64) {
     let mut rng = Rng::new(seed);
     let sizes = sample(parts, &mut rng);
 
-    let raw_total: u64 = sizes.iter().map(|&s| s as u64 + 4 + ENC_OVERHEAD as u64).sum();
+    let raw_total: u64 = sizes
+        .iter()
+        .map(|&s| s as u64 + 4 + ENC_OVERHEAD as u64)
+        .sum();
     let total_payload: f64 = sizes.iter().map(|&s| s as f64).sum();
     let tail_share = sizes
         .iter()
@@ -214,15 +232,24 @@ fn run(name: &str, parts: Parts, seed: u64) {
         .sum::<f64>()
         / total_payload;
 
-    println!("══ {name} ══");
+    println!("══ {name} ══ (seed {seed:#x})");
     println!(
         "{N} records | raw ~{:.0} MB | ≥256K byte-share: {:.0}%",
         raw_total as f64 / 1e6,
         tail_share * 100.0
     );
     println!(
-        "{:<22} {:>7} {:>6} {:>6} {:>6} {:>9} {:>9} {:>7} {:>6}",
-        "scheme", "classes", "k≥5", "k≥50", "k≥500", "tail-anon", "stored MB", "inflat", "unpush"
+        "{:<22} {:>7} {:>6} {:>6} {:>6} {:>6} {:>7} {:>6} {:>6} {:>8}",
+        "scheme",
+        "classes",
+        "k≥500",
+        "t-min",
+        "t-p10",
+        "t-med",
+        "inflat",
+        "p95",
+        "unpush",
+        "ws-strand"
     );
 
     for scheme in [
@@ -254,51 +281,142 @@ fn run(name: &str, parts: Parts, seed: u64) {
             }
         }
 
-        // k-anonymity: fraction of pushable records in classes of size ≥ k.
+        // k-anonymity at the standard threshold (k >= 500).
         let pushable = class_of.len();
-        let k_frac = |k: usize| {
-            class_of
-                .iter()
-                .filter(|(blob, _)| occupancy[blob] >= k)
-                .count() as f64
-                / pushable as f64
-                * 100.0
-        };
-        // Tail anonymity: median occupancy of the classes that ≥1MB
-        // records land in (how crowded the large-record hiding spots are).
+        let k500 = class_of
+            .iter()
+            .filter(|(blob, _)| occupancy[blob] >= 500)
+            .count() as f64
+            / pushable as f64
+            * 100.0;
+
+        // Tail occupancy per record (min / p10 / median): the worst-off
+        // classes matter more than the median when records are rare.
         let mut tail_occ: Vec<usize> = class_of
             .iter()
             .filter(|(_, is_tail)| *is_tail == 1)
             .map(|(blob, _)| occupancy[blob])
             .collect();
-        let tail_anon = if tail_occ.is_empty() {
-            "—".to_string()
-        } else {
-            format!("{}", median(&mut tail_occ))
+        tail_occ.sort_unstable();
+        let tstat = |p: f64| -> String {
+            if tail_occ.is_empty() {
+                "—".to_string()
+            } else {
+                let i = ((tail_occ.len() - 1) as f64 * p) as usize;
+                format!("{}", tail_occ[i.min(tail_occ.len() - 1)])
+            }
         };
 
+        // Per-record overhead p95 (the mean hides near-boundary worst cases).
+        let mut overheads: Vec<f64> = Vec::with_capacity(pushable);
+        for &s in &sizes {
+            if let Some(blob) = scheme.blob(s) {
+                let raw = s as f64 + 4.0 + ENC_OVERHEAD as f64;
+                overheads.push(blob as f64 / raw - 1.0);
+            }
+        }
+        overheads.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let p95 = if overheads.is_empty() {
+            f64::NAN
+        } else {
+            overheads[((overheads.len() - 1) as f64 * 0.95) as usize] * 100.0
+        };
+
+        // Blobs legal per the 5MB server check but over today's 4 MiB WS
+        // message cap — stranded until WS_MAX_MESSAGE_SIZE is raised.
+        let ws_strand = class_of.iter().filter(|(blob, _)| *blob > WS_CAP).count();
+
+        // Detail: occupancy of every class that ≥1MB records land in
+        // (bytes, not KB — distinct blobs must not print identically).
+        let tail_blobs: std::collections::HashSet<usize> = class_of
+            .iter()
+            .filter(|(_, is_tail)| *is_tail == 1)
+            .map(|(blob, _)| *blob)
+            .collect();
+        let mut tail_classes: Vec<(usize, usize)> = occupancy
+            .iter()
+            .filter(|(blob, _)| tail_blobs.contains(blob))
+            .map(|(blob, occ)| (*blob, *occ))
+            .collect();
+        tail_classes.sort();
+        let detail = if tail_classes.len() > 10 {
+            // Truncate pathological cases (e.g. 'none': thousands of singletons)
+            let head = tail_classes
+                .iter()
+                .take(8)
+                .map(|(blob, occ)| format!("{}:{}", blob, occ))
+                .collect::<Vec<_>>()
+                .join(" ");
+            format!("{head} … ({} classes)", tail_classes.len())
+        } else {
+            tail_classes
+                .iter()
+                .map(|(blob, occ)| format!("{}:{}", blob, occ))
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+
+        if unpushable == N {
+            println!("{:<22} all records unpushable", scheme.name());
+            continue;
+        }
+
         println!(
-            "{:<22} {:>7} {:>5.0}% {:>5.0}% {:>5.0}% {:>9} {:>9.1} {:>6.0}% {:>6}",
+            "{:<22} {:>7} {:>6} {:>6} {:>6} {:>6} {:>7} {:>6} {:>6} {:>8}",
             scheme.name(),
             occupancy.len(),
-            k_frac(5),
-            k_frac(50),
-            k_frac(500),
-            tail_anon,
-            stored as f64 / 1e6,
-            (stored as f64 / raw_pushable as f64 - 1.0) * 100.0,
+            format!("{k500:.0}%"),
+            tstat(0.0),
+            tstat(0.1),
+            tstat(0.5),
+            format!(
+                "{:.0}%",
+                (stored as f64 / raw_pushable as f64 - 1.0) * 100.0
+            ),
+            format!("{p95:.0}%"),
             unpushable,
+            ws_strand,
         );
+        if !tail_classes.is_empty() {
+            println!("{:>22} ≥1M classes (bytes:count): {detail}", "");
+        }
     }
     println!();
 }
 
 fn main() {
-    println!("Padding simulation (privacy-first) — {N} records/profile, 5MB cap\n");
-    run("typical app (embedded docs in the tail)", TYPICAL, 0x51A1);
-    run("messenger-style (no embedded docs)", MESSENGER, 0xBE5C);
-    println!("Caveat: inflation is vs each scheme's own pushable raw bytes (schemes");
-    println!("that cannot push some records count only what they store; see unpush).");
-    println!("Anonymity sets are computed over the whole simulated population;");
-    println!("per-app or per-user populations are smaller, so real k-anonymity is weaker.");
+    let seed_override = match std::env::var("SEED") {
+        Err(_) => None,
+        Ok(s) => {
+            // Hex, with optional 0x/0X prefix (note: "123" parses as 0x123).
+            let stripped = s.trim_start_matches("0x").trim_start_matches("0X");
+            match u64::from_str_radix(stripped, 16) {
+                Ok(v) => Some(v),
+                Err(_) => {
+                    eprintln!("warning: SEED={s:?} is not valid hex — using default seeds");
+                    None
+                }
+            }
+        }
+    };
+    let base = seed_override.unwrap_or(0);
+    println!("Padding simulation (privacy-first) — {N} records/profile");
+    println!("Blob cap 5MB (server checks stored blob) | WS cap 4 MiB (raise is a precondition)\n");
+    run(
+        "typical app (embedded docs in the tail)",
+        TYPICAL,
+        0x51A1 ^ base,
+    );
+    run(
+        "messenger-style (no embedded docs)",
+        MESSENGER,
+        0xBE5C ^ base,
+    );
+    println!("Legend: t-min/p10/med = min/p10/median per-record class occupancy");
+    println!("among ≥1MB records; p95 = per-record overhead p95; ws-strand =");
+    println!("blobs legal per the 5MB check but over today's 4 MiB WS message cap");
+    println!("(pushable only after WS_MAX_MESSAGE_SIZE is raised).");
+    println!("Inflation is vs each scheme's own pushable raw bytes: schemes");
+    println!("that cannot push big records look better on inflation.");
+    println!("Anonymity sets are population-wide; per-user populations are smaller.");
 }
