@@ -340,6 +340,16 @@ not a near-term option. Record-slot linkage is trivial for the server
 regardless of padding; size padding's job is content/activity inference,
 not linkage.
 
+## Decision (2026-09-30)
+
+Adopted: **pow-2 ladder to the cap** (`DEFAULT_PADDING_BUCKETS` in
+betterbase-sync-core: 256 … 4M, 5,242,867) with the limits fixed to
+match — WS message/frame caps raised 4 → 8 MiB on both sides (server
+`WS_MAX_MESSAGE_SIZE`, client `MAX_FRAME_BYTES`), and the SDK splits
+push batches so no message exceeds the frame cap (budget derived from
+`maxFrameBytes`). Tail refinement (@2M-style worst-case merging) is
+deferred until real embedded-doc size distributions are measured.
+
 ## Caveats
 
 - Anonymity sets are population-wide; real observers see per-app or

@@ -12,7 +12,7 @@ publish = false
 # production produces.
 #
 # Numbers in README.md were recorded against sibling checkouts at:
-#   betterbase   6233fd6
+#   betterbase   8d45e97
 #   json-joy-rs  410e199
 # (Path deps track whatever is checked out; re-record if those move.)
 
