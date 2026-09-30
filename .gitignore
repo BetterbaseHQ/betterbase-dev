@@ -5,6 +5,9 @@ dist/
 .env
 test-results/
 
+# Local-only ops runbook — references prod infrastructure; never commit
+RUNBOOK.md
+
 # Cloned service repos (managed by scripts/setup.sh)
 betterbase
 betterbase-accounts
