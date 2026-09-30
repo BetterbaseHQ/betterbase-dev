@@ -71,12 +71,29 @@ const EXTENDED4X: &[usize] = &[
     256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 5242888,
 ];
 
+/// Pow-2 ladder ending at the 5MB cap. Note: no 8MB bucket — a blob padded
+/// past 5MB would be rejected by the server's per-blob validation, so the
+/// final bucket must be 5_242_880 (5MB + headroom for the length prefix).
+const POW2: &[usize] = &[
+    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144,
+    524288, 1048576, 2097152, 4194304, 5242888,
+];
+
+/// Hybrid: pow-2 up to 1MB, then 4×-style jumps over the tail (no 2MB
+/// bucket) — extra coarseness spent only where records are rare/sensitive.
+const POW2_POW4_TAIL_1M: &[usize] = &[
+    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144,
+    524288, 1048576, 4194304, 5242888,
+];
+
+/// Same idea, coarsening starting at 2MB instead (one fewer 4× jump).
+const POW2_POW4_TAIL_2M: &[usize] = &[
+    256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144,
+    524288, 1048576, 2097152, 5242888,
+];
+
 fn bucket(payload: usize, buckets: &[usize]) -> Option<usize> {
     buckets.iter().copied().find(|&b| payload + 4 <= b)
-}
-
-fn next_pow2_buckets() -> Vec<usize> {
-    (8..=23).map(|e| 1 << e).collect() // 256B .. 8MB
 }
 
 /// Padmé (PURBs §4): round payload+prefix up so its low E−S bits are zero,
@@ -95,6 +112,8 @@ enum Scheme {
     Current,
     Extended4x,
     NextPow2,
+    Pow2Pow4Tail1M,
+    Pow2Pow4Tail2M,
     Padme,
     Hybrid16k,
     Hybrid256k,
@@ -106,7 +125,9 @@ impl Scheme {
             Scheme::None => "none (no padding)",
             Scheme::Current => "current 4x (1M)",
             Scheme::Extended4x => "extended 4x (5M)",
-            Scheme::NextPow2 => "next-pow-2",
+            Scheme::NextPow2 => "pow2 (to 5M cap)",
+            Scheme::Pow2Pow4Tail1M => "pow2 + 4x tail @1M",
+            Scheme::Pow2Pow4Tail2M => "pow2 + 4x tail @2M",
             Scheme::Padme => "padme",
             Scheme::Hybrid16k => "hybrid 4x<=16k+padme",
             Scheme::Hybrid256k => "hybrid 4x<=256k+padme",
@@ -122,7 +143,9 @@ impl Scheme {
             Scheme::None => payload + 4,
             Scheme::Current => bucket(payload, CURRENT)?,
             Scheme::Extended4x => bucket(payload, EXTENDED4X)?,
-            Scheme::NextPow2 => bucket(payload, &next_pow2_buckets())?,
+            Scheme::NextPow2 => bucket(payload, POW2)?,
+            Scheme::Pow2Pow4Tail1M => bucket(payload, POW2_POW4_TAIL_1M)?,
+            Scheme::Pow2Pow4Tail2M => bucket(payload, POW2_POW4_TAIL_2M)?,
             Scheme::Padme => padme(payload),
             Scheme::Hybrid16k => {
                 if payload + 4 <= 16384 {
@@ -207,6 +230,8 @@ fn run(name: &str, parts: Parts, seed: u64) {
         Scheme::Current,
         Scheme::Extended4x,
         Scheme::NextPow2,
+        Scheme::Pow2Pow4Tail1M,
+        Scheme::Pow2Pow4Tail2M,
         Scheme::Padme,
         Scheme::Hybrid16k,
         Scheme::Hybrid256k,

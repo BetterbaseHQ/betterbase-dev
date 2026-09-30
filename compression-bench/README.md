@@ -215,12 +215,15 @@ are the objective, storage is the price.
 | none | 31,384 | 1% | 0% | 1 | baseline |
 | current 4× (1M) | 7 | 100% | 100% | — (unpushable) | +99% |
 | extended 4× (5M) | 9 | 100% | 100% | **1,578** | **+105%** |
-| next-pow-2 | 16 | 100% | 100% | **1,076** | **+44%** |
+| pow2 (to 5M cap) | 16 | 100% | 100% | **1,076** | **+42%** |
+| **pow2 + 4× tail @1M** | 15 | 100% | 100% | **1,578** | **+75%** |
+| pow2 + 4× tail @2M | 15 | 100% | 100% | 1,076 | +50% |
 | padmé | 352 | 98% | 65% | **30** | +1% |
 | hybrid 16k+padmé | 236 | 98% | 78% | 30 | +4% |
 | hybrid 256k+padmé | 142 | 98% | 94% | 30 | +20% |
 
-Messenger-style (no tail): current 4× +115% storage; pow2 +44%; padmé +2%
+Messenger-style (no tail): pow2 +44% storage; the tail hybrids are
+byte-identical to pow2 (coarsening above 1M never triggers); padmé +2%
 with 99% k≥50 / 89% k≥500.
 
 ## Findings
@@ -245,6 +248,14 @@ with 99% k≥50 / 89% k≥500.
    tail-anon 1,578). Both fix today's real defect: the 1MB default
    ladder makes ~1.7% of records (including the whole embedded-doc
    class) unpushable.
+5. **A pow2 base with 4× jumps over the tail (no 2MB bucket) gets the
+   maximal tail crowds at a mid price: tail-anon 1,578 at +75%.** It is
+   byte-identical to plain pow2 for apps with no ≥1MB records — the
+   coarsening costs nothing unless a tail exists. Note the knob's
+   placement matters: coarsening from 1M captures the huge-class median
+   (~1.5MB in this model); coarsening from 2M left the median tail
+   metric unchanged (it only crowds the upper tail). Where to place the
+   jump should be driven by measured embedded-doc sizes.
 
 ## Caveats
 
