@@ -176,3 +176,84 @@ Compress: L1/L3 stay ≤ ~1.9 ms up to 1.2 MB; L19 costs 60–75 ms at ~1 MB and
 
 - `betterbase` @ `6233fd6`, `json-joy-rs` @ `410e199` (sibling checkouts;
   see Cargo.toml)
+
+---
+
+# Padding scheme simulation (privacy-first)
+
+`cargo run --release --bin padding-sim`
+
+Companion to the compression question: given a 5MB per-blob cap, a
+small-record-heavy distribution with an embedded-doc tail, and the
+PURBs/Padmé paper (USENIX Security 2019) as the framework, how do padding
+`schemes trade **privacy against storage**? Privacy-first: leak metrics
+are the objective, storage is the price.
+
+## Method
+
+- Two profiles, 100k records each, lognormal mixtures (the standard
+  file-size model), fixed seeds:
+  - **typical app**: 72% small (~1.2KB median) / 18% medium (~25KB) /
+    8% large (~250KB) / 2% huge (~1.5MB, embedded docs) — 80% of bytes
+    in the ≥256K tail.
+  - **messenger-style**: 95% small / 4.5% medium / 0.5% large, no tail.
+- Schemes: no padding; current 4× ladder (max 1MB); 4× extended to the
+  5MB cap; next-power-of-2; Padmé; two hybrids (4× below a cutoff,
+  Padmé above).
+- Leak metrics: distinct observable size classes (observer resolution);
+  k-anonymity — fraction of records whose padded size is shared by ≥5/50/
+  500 others; **tail-anonymity** — median occupancy of the size classes
+  that ≥1MB records land in (how crowded the hiding spots are for the
+  sensitive embedded-doc records).
+- Cost metrics: stored bytes (inflation vs each scheme's own pushable
+  raw), unpushable records.
+
+## Results (typical app; 80% of bytes in the tail)
+
+| scheme | classes | k≥50 | k≥500 | tail-anon | storage |
+|---|---|---|---|---|---|
+| none | 31,384 | 1% | 0% | 1 | baseline |
+| current 4× (1M) | 7 | 100% | 100% | — (unpushable) | +99% |
+| extended 4× (5M) | 9 | 100% | 100% | **1,578** | **+105%** |
+| next-pow-2 | 16 | 100% | 100% | **1,076** | **+44%** |
+| padmé | 352 | 98% | 65% | **30** | +1% |
+| hybrid 16k+padmé | 236 | 98% | 78% | 30 | +4% |
+| hybrid 256k+padmé | 142 | 98% | 94% | 30 | +20% |
+
+Messenger-style (no tail): current 4× +115% storage; pow2 +44%; padmé +2%
+with 99% k≥50 / 89% k≥500.
+
+## Findings
+
+1. **For the sensitive tail, coarse buckets are the privacy-maximal
+   choice, and Padmé is a real regression.** With ~2k embedded-doc
+   records in the population, Padmé's fine granularity spreads them over
+   ~70 size classes (~30 records each); the 4× ladder concentrates them
+   into crowds of ~1,578; pow2 ~1,076. Per-user the effect is starker:
+   a user's own ≥1MB records are few, so Padmé's tail anonymity is
+   effectively 1–2 at the per-user level.
+2. **For the small-record majority, every coarse ladder is strictly more
+   private than Padmé** (100% k≥500 vs 65–94%). Padmé's benefit is
+   almost entirely storage, not privacy.
+3. **The hybrids are a storage-first construct and dissolve under a
+   privacy-first frame.** Putting Padmé on the large records saves the
+   most bytes exactly where sensitivity concentrates. A privacy-first
+   "hybrid" (coarse high, fine low) is just… a coarse ladder.
+4. **The balanced privacy-first option is next-pow-2 extended to the cap:
+   +44% storage with k≥500 at 100% and tail-anon >1,000.** The maximal
+   privacy option is the current 4× coarseness extended to 5MB (+105%,
+   tail-anon 1,578). Both fix today's real defect: the 1MB default
+   ladder makes ~1.7% of records (including the whole embedded-doc
+   class) unpushable.
+
+## Caveats
+
+- Anonymity sets are population-wide; real observers see per-app or
+  per-user populations, so absolute k-anon is weaker everywhere — the
+  relative ordering is the robust takeaway.
+- All schemes leak size-class *transitions over time* (growth
+  trajectories); coarser ladders transition less often.
+- 46 of 100k simulated records exceeded the 5MB cap itself — a
+  record-design/app concern independent of padding.
+- Lognormal mixtures are a model; real embedded-doc distributions should
+  be measured before finalizing a ladder.
