@@ -116,8 +116,8 @@ check-all:
     @echo "=== Checking passwords app ==="
     cd ./betterbase-examples/passwords && pnpm check
     @echo ""
-    @echo "=== Checking chat app ==="
-    cd ./betterbase-examples/chat && pnpm check
+    @echo "=== Checking messenger app ==="
+    cd ./betterbase-examples/messenger && pnpm check
     @echo ""
     @echo "=== Checking ai-chat app ==="
     cd ./betterbase-examples/ai-chat && pnpm check
@@ -477,7 +477,7 @@ health:
     @curl -sf http://localhost:5383/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
     @echo "Checking board..."
     @curl -sf http://localhost:5384/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
-    @echo "Checking chat..."
+    @echo "Checking messenger..."
     @curl -sf http://localhost:5385/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
     @echo "Checking passwords..."
     @curl -sf http://localhost:5387/ > /dev/null 2>&1 && echo " OK" || echo " FAIL"
@@ -564,9 +564,9 @@ setup-board:
 setup-passwords:
     just setup-example passwords 5387 sync
 
-# Set up chat app OAuth client
-setup-chat:
-    just setup-example chat 5385 sync
+# Set up messenger app OAuth client
+setup-messenger:
+    just setup-example messenger 5385 sync
 
 # Set up ai-chat app OAuth client (sync — chats sync E2EE across devices;
 # inference itself runs locally in the browser)
@@ -581,7 +581,7 @@ setup-examples:
     just setup-photos
     just setup-board
     just setup-passwords
-    just setup-chat
+    just setup-messenger
     just setup-ai-chat
 
 # =============================================================================

@@ -6,7 +6,7 @@ An open platform for building local-first applications with end-to-end encryptio
 
 We believe your users' data should be private by default.
 
-**Build things like:** [encrypted todos](betterbase-examples/tasks), [collaborative notes](betterbase-examples/notes), [password vaults](betterbase-examples/passwords), [photo sharing](betterbase-examples/photos), [real-time chat](betterbase-examples/chat) -- all offline-first, all end-to-end encrypted.
+**Build things like:** [encrypted todos](betterbase-examples/tasks), [collaborative notes](betterbase-examples/notes), [password vaults](betterbase-examples/passwords), [photo sharing](betterbase-examples/photos), [real-time chat](betterbase-examples/messenger) -- all offline-first, all end-to-end encrypted.
 
 > Betterbase is in active development. APIs may change before 1.0.
 
@@ -148,7 +148,7 @@ betterbase-dev/                        # You are here
 │   ├── passwords/                     #   Encrypted password vault
 │   ├── photos/                        #   Photo sharing with encrypted file storage
 │   ├── board/                         #   Collaborative board
-│   ├── chat/                          #   Encrypted messaging
+│   ├── messenger/                    #   Encrypted messaging
 │   ├── ai-chat/                       #   Local in-browser LLM chat (WebGPU)
 │   └── shared/                        #   @betterbase/examples-shared
 ├── e2e/                               # Playwright browser tests (isolated compose project)

@@ -156,13 +156,13 @@ services:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5387/"]
       start_period: 20s
 
-  chat:
+  messenger:
     build:
       context: .
-      dockerfile: ./betterbase-examples/chat/Dockerfile.dev
+      dockerfile: ./betterbase-examples/messenger/Dockerfile.dev
     volumes:
-      - ./betterbase-examples/chat:/workspace/examples/chat
-      - /workspace/examples/chat/node_modules
+      - ./betterbase-examples/messenger:/workspace/examples/messenger
+      - /workspace/examples/messenger/node_modules
     ports:
       - "5385:5385"
     environment:

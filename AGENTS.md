@@ -14,7 +14,7 @@ Each component is a separate git repo checked out as a subdirectory here, with i
 | `betterbase-accounts/` | Auth service — Axum, OPAQUE + OAuth 2.0, React web UI (port 5377) |
 | `betterbase-sync/` | Blob sync service — Axum, WebSocket RPC + CBOR, encrypted blobs (port 5379) |
 | `betterbase-inference/` | E2EE inference proxy — Axum, forwards to Tinfoil TEE |
-| `betterbase-examples/` | Example apps: launchpad, tasks, notes, passwords, photos, board, chat, ai-chat, shared |
+| `betterbase-examples/` | Example apps: launchpad, tasks, notes, passwords, photos, board, messenger, ai-chat, shared |
 | `json-joy-rs/` | Rust port of json-joy CRDTs (path dependency of `betterbase/crates/betterbase-db`) |
 | `e2e/` | Playwright end-to-end tests against an isolated docker-compose stack |
 
