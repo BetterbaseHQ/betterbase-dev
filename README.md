@@ -87,7 +87,7 @@ just health   # Check service health endpoints
 | Notes | 5382 | Rich text notes (dev only) |
 | Photos | 5383 | Photo sharing (dev only) |
 | Board | 5384 | Collaborative board (dev only) |
-| Chat | 5385 | Encrypted messaging (dev only) |
+| Messenger | 5385 | Encrypted messaging (dev only) |
 | Passwords | 5387 | Password vault (dev only) |
 
 > `betterbase-inference` is not included in the default dev stack. It requires a [Tinfoil TEE](https://tinfoil.sh/) backend and is run standalone.
@@ -148,7 +148,7 @@ betterbase-dev/                        # You are here
 │   ├── passwords/                     #   Encrypted password vault
 │   ├── photos/                        #   Photo sharing with encrypted file storage
 │   ├── board/                         #   Collaborative board
-│   ├── messenger/                    #   Encrypted messaging
+│   ├── messenger/                     #   Encrypted messaging
 │   ├── ai-chat/                       #   Local in-browser LLM chat (WebGPU)
 │   └── shared/                        #   @betterbase/examples-shared
 ├── e2e/                               # Playwright browser tests (isolated compose project)

@@ -534,7 +534,7 @@ main() {
     echo "  Notes:     http://localhost:5382"
     echo "  Photos:    http://localhost:5383"
     echo "  Board:     http://localhost:5384"
-    echo "  Chat:      http://localhost:5385"
+    echo "  Messenger: http://localhost:5385"
     echo "  Passwords: http://localhost:5387"
     echo ""
 }
