@@ -113,6 +113,18 @@ Compress: L1/L3 stay ≤ ~1.9 ms up to 1.2 MB; L19 costs 60–75 ms at ~1 MB and
    1 MB wall. Records beyond that still need a bucket-ceiling raise or CRDT
    history compaction.
 
+   **Size-limits context (verified 2026-09-30):** the 1 MB wall is the
+   *client-side default bucket ladder*, not a server limit. The server
+   accepts blobs up to 5 MB (`DEFAULT_MAX_BLOB_SIZE`, sync core), but the
+   WS transport caps inbound messages at 4 MiB (`WS_MAX_MESSAGE_SIZE`),
+   and no app overrides the default 1 MB ladder — so with default config
+   nothing above ~1 MB is pushable, and even custom buckets could not
+   exceed ~4 MiB (WS cap) despite the 5 MB storage check. "Overflow" in
+   this bench therefore means default-config client-side push failure; a
+   ladder raise alone (no compression) would also rescue the ~1.2 MB
+   class. The two changes are alternatives with different privacy costs —
+   compression shrinks payloads, a ladder raise leaks a new size class.
+
 3. **Bucket quantization still eats most small/mid-record wins.** With 4×
    bucket jumps, 0.4–0.5 ratios rarely cross a boundary: most scenarios
    show 0% padded gain. Crossings happened for `merged-2actor` and
