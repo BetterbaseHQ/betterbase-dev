@@ -8,7 +8,7 @@
 
 [components]
 betterbase = "0acf74bcc6a7506cbf1022d249970bfe3c578454"
-betterbase-accounts = "89f52f0b68e887fbbb0ff10bf93217d9c9e62549"
+betterbase-accounts = "63415c3bb76f9572a5b703c15b73e8841470c8ed"
 betterbase-sync = "0113ab2e841ff33a60ed9b9e87844d4f4c4560f4"
 betterbase-inference = "819031838e117595cfea13cba3ef3b878109dd59"
 betterbase-examples = "72c44d8ef2c5d3d56909a17a3802f836958f4188"
