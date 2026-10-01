@@ -147,7 +147,7 @@ Data is stored **plaintext** in the client db (fully queryable). Encryption happ
 
 **betterbase-sync:** `TRUSTED_ISSUERS` (required, space-separated issuer URLs or `issuer=jwks_url` pairs), `AUDIENCES` (JWT audience validation), `DATABASE_URL` (required), `IDENTITY_HASH_KEY` (HMAC-SHA256 key for privacy-preserving lookups)
 
-**betterbase-inference:** `TINFOIL_API_KEY` (required), `JWKS_URL`, `ISSUER`/`AUDIENCES`
+**betterbase-inference:** single-crate Axum proxy to Tinfoil TEE. Env vars: `ADDR` (default `:5381`), `LOG_FORMAT` (text/json, default text), `DEV_MODE` (ephemeral test JWT key), `JWKS_URL`, `ISSUER`, `AUDIENCES`, `TINFOIL_BASE_URL` (default `https://inference.tinfoil.sh`), `TINFOIL_API_KEY`, `RATE_LIMIT_RPM` (default 60, 0 to disable), `RATE_LIMIT_BURST` (default 10), `MAX_UPSTREAM_CONCURRENCY` (default 256), `MAX_REQUEST_BODY_BYTES` (default 10 MB), `REQUIRE_EHBP` (default false; gates chat on presence of the `Ehbp-Encapsulated-Key` header).
 
 **Examples:** `VITE_OAUTH_CLIENT_ID` — auto-configured by `just setup-examples`
 
