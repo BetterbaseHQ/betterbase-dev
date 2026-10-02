@@ -76,6 +76,9 @@ examples origin exactly as in production. Each app's dev container also
 remains reachable on its direct port (e.g. `http://localhost:5381/tasks/`)
 for debugging; the canonical URLs are the `*.betterbase.localhost` ones.
 
+> `docker-compose.dev.yml` uses the `!override` compose tag (dev-only Caddy
+> ports/volumes), which requires Docker Compose v2.24+.
+
 ### Verify
 
 ```bash

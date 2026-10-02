@@ -5,13 +5,13 @@
 # prod-shaped origins (*.betterbase.localhost resolve to loopback in
 # browsers per RFC 6761 — no DNS setup). See caddy/Caddyfile.dev.
 services:
-  # Caddy in dev: prod-parity edge (sites, tiers, /cap/*) on port 80 only.
-  # The 5377/5379/5380 ports from the base file stay dark here — the
+  # Caddy in dev: prod-parity edge (sites, tiers, /cap/*) on loopback port 80
+  # only. The 5377/5379/5380 ports from the base file stay dark here — the
   # canonical dev origins are http://accounts.betterbase.localhost etc.
   # Direct service ports below remain published for tooling (curl, just
   # health, debugging), not for browsers.
   caddy:
-    ports: !override ["80:80"]
+    ports: !override ["127.0.0.1:80:80"]
     volumes: !override
       - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
       - dev_caddy_data:/data

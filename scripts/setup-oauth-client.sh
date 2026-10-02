@@ -110,9 +110,10 @@ CLIENT_ID=$(echo "$OUTPUT" | grep "^Client ID:" | awk '{print $3}')
 
 # If create failed (client name exists), get ID from list
 if [ -z "$CLIENT_ID" ]; then
+    # Prefer the newest same-named client (list is created_at ascending)
     LIST_OUTPUT=$(oauth_client_cmd list 2>&1)
     CLIENT_ID=$(echo "$LIST_OUTPUT" | awk -v n="$APP_NAME" \
-        '$1 == "ID:" { id = $2 } $1 == "Name:" && $2 == n { print id }' | head -1)
+        '$1 == "ID:" { id = $2 } $1 == "Name:" && $2 == n { print id }' | tail -1)
 fi
 
 if [ -z "$CLIENT_ID" ]; then

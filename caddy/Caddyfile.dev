@@ -197,24 +197,33 @@ http://examples.betterbase.localhost {
 
 	# Apps run with VITE_BASE_PATH=/<app>/ and serve that prefix themselves,
 	# so paths are passed through unmodified — same URLs as the prod image.
+	# Bare paths (no trailing slash) redirect to the app prefix, matching
+	# the unified examples container's behavior in prod.
+	redir /tasks /tasks/ 308
 	handle /tasks/* {
 		reverse_proxy tasks:5381
 	}
+	redir /notes /notes/ 308
 	handle /notes/* {
 		reverse_proxy notes:5382
 	}
+	redir /photos /photos/ 308
 	handle /photos/* {
 		reverse_proxy photos:5383
 	}
+	redir /board /board/ 308
 	handle /board/* {
 		reverse_proxy board:5384
 	}
+	redir /messenger /messenger/ 308
 	handle /messenger/* {
 		reverse_proxy messenger:5385
 	}
+	redir /ai-chat /ai-chat/ 308
 	handle /ai-chat/* {
 		reverse_proxy ai-chat:5386
 	}
+	redir /passwords /passwords/ 308
 	handle /passwords/* {
 		reverse_proxy passwords:5387
 	}
