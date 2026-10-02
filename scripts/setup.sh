@@ -330,13 +330,17 @@ provision_cap() {
     # browser blocking. See https://trycap.dev/guide/instrumentation.html.
     # HashWX (GPU-resistant PoW) is not yet in a stable release; revisit on
     # the next bump. blockNonBrowserUA stays off — our own provisioning and
-    # health checks fetch challenges with curl.
+    # health checks fetch challenges with curl. obfuscationLevel is not a
+    # create-body field (server default is already 3). Unlike dev's
+    # _ensure-cap-key there is no idempotent enforcement here: keys created
+    # before instrumentation ship keep their config until rotated (enforce
+    # via the CAP dashboard if needed).
     log_info "Creating CAP site key..."
     local key_response
     key_response=$(cap_curl -X POST http://cap:3000/server/keys \
         -H "Authorization: Bearer $auth_token" \
         -H "Content-Type: application/json" \
-        -d '{"name":"betterbase-accounts","instrumentation":true,"obfuscationLevel":3,"blockAutomatedBrowsers":true}' 2>&1) || {
+        -d '{"name":"betterbase-accounts","instrumentation":true,"blockAutomatedBrowsers":true}' 2>&1) || {
         log_error "Failed to create CAP site key"
         docker compose stop cap
         exit 1
@@ -531,8 +535,8 @@ main() {
     echo ""
     echo "Next steps:"
     echo "  1. Run 'just dev' to start all services with hot reload"
-    echo "  2. Open http://localhost:5378 for the auth UI"
-    echo "  3. Open http://localhost:5380 for the launchpad portal"
+    echo "  2. Open http://accounts.betterbase.localhost for the auth UI"
+    echo "  3. Open http://examples.betterbase.localhost for the launchpad portal"
     echo ""
     echo "All example apps are available in dev mode:"
     echo "  Tasks:     http://localhost:5381"

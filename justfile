@@ -265,12 +265,15 @@ _ensure-cap-key:
     cap_curl() { docker run --rm --network "$NETWORK" curlimages/curl:latest -sf "$@"; }
 
     # Log in to the CAP admin API and echo the bearer token.
+    # Explicit `return 1`s: under `$( … ) || fallback`, set -e is
+    # suppressed inside the subshell, so failures must propagate themselves.
     cap_admin_token() {
         LOGIN=$(cap_curl -X POST http://cap:3000/auth/login \
             -H "Content-Type: application/json" \
-            -d "{\"admin_key\":\"$CAP_ADMIN_KEY\"}")
-        SESSION=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['session_token'])")
-        HASH=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['hashed_token'])")
+            -d "{\"admin_key\":\"$CAP_ADMIN_KEY\"}") \
+            || { echo "CAP admin login request failed" >&2; return 1; }
+        SESSION=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['session_token'])") || return 1
+        HASH=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['hashed_token'])") || return 1
         printf '{"token":"%s","hash":"%s"}' "$SESSION" "$HASH" | base64 | tr -d '\n'
     }
 
@@ -278,15 +281,23 @@ _ensure-cap-key:
     # before instrumentation was enabled get upgraded in place. HashWX
     # (GPU-resistant PoW) is not yet in a stable release; revisit on the
     # next image bump. blockNonBrowserUA stays off — this recipe (and
-    # provisioning) fetch challenges with curl.
+    # provisioning) fetch challenges with curl. The key id is passed
+    # explicitly: after re-creation the shell's CAP_KEY_ID is stale.
+    # CAP returns 200 with success:false for unknown keys, so the response
+    # body is checked, not just the HTTP status.
     enforce_cap_config() {
+        local key_id="${1:-}"
+        [ -n "$key_id" ] || { echo "Warning: no CAP key id for config enforcement"; return 0; }
         AUTH_TOKEN=$(cap_admin_token) || { echo "Warning: CAP admin login failed; skipping config enforcement"; return 0; }
-        cap_curl -X PUT "http://cap:3000/server/keys/${CAP_KEY_ID:-$NEW_KEY_ID}/config" \
+        RESP=$(cap_curl -X PUT "http://cap:3000/server/keys/${key_id}/config" \
             -H "Authorization: Bearer $AUTH_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"instrumentation":true,"obfuscationLevel":3,"blockAutomatedBrowsers":true}' >/dev/null \
-            && echo "CAP site key config enforced (instrumentation + bot blocking)" \
-            || echo "Warning: failed to enforce CAP site key config"
+            -d '{"instrumentation":true,"obfuscationLevel":3,"blockAutomatedBrowsers":true}')
+        if echo "$RESP" | grep -q '"success":true'; then
+            echo "CAP site key config enforced (instrumentation + bot blocking)"
+        else
+            echo "Warning: failed to enforce CAP site key config"
+        fi
     }
 
     # Test if the existing site key works
@@ -294,7 +305,7 @@ _ensure-cap-key:
         CHALLENGE=$(cap_curl -X POST "http://cap:3000/${CAP_KEY_ID}/challenge" 2>/dev/null || true)
         if echo "$CHALLENGE" | grep -q '"token"'; then
             echo "CAP site key $CAP_KEY_ID verified"
-            enforce_cap_config
+            enforce_cap_config "$CAP_KEY_ID"
             if [ "$CAP_WAS_RUNNING" = false ]; then
                 {{ dev_compose }} stop cap
             fi
@@ -307,12 +318,14 @@ _ensure-cap-key:
     echo "Authenticating with CAP..."
     AUTH_TOKEN=$(cap_admin_token)
 
-    # Create site key with the full feature set
+    # Create site key with the full feature set. obfuscationLevel is not a
+    # create-body field (server default is already 3); the enforcement PUT
+    # pins it explicitly.
     echo "Creating CAP site key..."
     KEY_RESPONSE=$(cap_curl -X POST http://cap:3000/server/keys \
         -H "Authorization: Bearer $AUTH_TOKEN" \
         -H "Content-Type: application/json" \
-        -d '{"name":"betterbase-accounts","instrumentation":true,"obfuscationLevel":3,"blockAutomatedBrowsers":true}')
+        -d '{"name":"betterbase-accounts","instrumentation":true,"blockAutomatedBrowsers":true}')
 
     NEW_KEY_ID=$(echo "$KEY_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['siteKey'])")
     NEW_SECRET=$(echo "$KEY_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['secretKey'])")
@@ -333,7 +346,7 @@ _ensure-cap-key:
     fi
 
     echo "CAP site key created: $NEW_KEY_ID"
-    enforce_cap_config
+    enforce_cap_config "$NEW_KEY_ID"
     echo "Updated .env with new CAP credentials"
 
     if [ "$CAP_WAS_RUNNING" = false ]; then
@@ -555,42 +568,42 @@ oauth-client-cmd *args:
     fi
 
 # Set up OAuth client for an example app
-# Usage: just setup-example <app-name> <port> [scopes...]
-setup-example app port *scopes:
-    ./scripts/setup-oauth-client.sh {{ app }} {{ port }} ./betterbase-examples/{{ app }}/.env {{ scopes }}
+# Usage: just setup-example <app-name> [scopes...]
+setup-example app *scopes:
+    ./scripts/setup-oauth-client.sh {{ app }} ./betterbase-examples/{{ app }}/.env {{ scopes }}
 
 # Set up launchpad OAuth client (portal only — no sync needed)
 setup-launchpad:
-    just setup-example launchpad 5380
+    just setup-example launchpad
 
 # Set up tasks app OAuth client
 setup-tasks:
-    just setup-example tasks 5381 sync
+    just setup-example tasks sync
 
 # Set up notes app OAuth client
 setup-notes:
-    just setup-example notes 5382 sync
+    just setup-example notes sync
 
 # Set up photos app OAuth client (sync + files for photo blobs)
 setup-photos:
-    just setup-example photos 5383 sync files
+    just setup-example photos sync files
 
 # Set up board app OAuth client
 setup-board:
-    just setup-example board 5384 sync
+    just setup-example board sync
 
 # Set up passwords app OAuth client
 setup-passwords:
-    just setup-example passwords 5387 sync
+    just setup-example passwords sync
 
 # Set up messenger app OAuth client
 setup-messenger:
-    just setup-example messenger 5385 sync
+    just setup-example messenger sync
 
 # Set up ai-chat app OAuth client (sync — chats sync E2EE across devices;
 # inference itself runs locally in the browser)
 setup-ai-chat:
-    just setup-example ai-chat 5386 sync
+    just setup-example ai-chat sync
 
 # Set up all example apps
 setup-examples:

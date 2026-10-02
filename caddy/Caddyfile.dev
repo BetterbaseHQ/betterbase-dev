@@ -1,0 +1,423 @@
+# Betterbase - DEV Caddy Configuration (prod parity)
+#
+# Mirrors caddy/Caddyfile (prod): same sites, same rate-limit tiers, same
+# /cap/* routing. Differences from prod, by design:
+#
+#   - Sites are fixed http://*.betterbase.localhost names on port 80
+#     (browsers resolve *.localhost to loopback per RFC 6761 — no DNS or
+#     /etc/hosts setup). No ACME/TLS: Caddy's automatic HTTPS is off.
+#   - The examples site routes to per-app dev containers (HMR) instead of
+#     the unified examples image. Apps run with VITE_BASE_PATH=/<app>/ so
+#     paths match prod exactly (launchpad at /, apps at /<app>/).
+#
+# Keep the tier structure and /cap/* block in sync with caddy/Caddyfile —
+# the point of this file is that dev exercises the same edge as prod.
+#
+# Rate limit tiers (sliding window - allows natural bursting within window):
+#   - Strict:   60/min   - Login, registration, recovery, federation WS
+#   - Moderate: 120/min  - Verification, OAuth, client WS upgrades
+#   - Standard: 300/min  - Authenticated API calls, health/JWKS, files
+#   - Relaxed:  1000/min - accounts web UI/unmatched; 600/min - sync default
+
+{
+	order rate_limit before basicauth
+
+	admin :2019
+}
+
+# ==============================================================================
+# Caddy Health Endpoint (dedicated, not proxied)
+# ==============================================================================
+
+:2019 {
+	respond /health 200
+}
+
+# ==============================================================================
+# betterbase-accounts (Authentication Service)
+# ==============================================================================
+http://accounts.betterbase.localhost {
+	vars client_ip {remote_host}
+
+	encode zstd gzip
+
+	# GLOBAL RATE LIMIT (600/min per IP) — backstop
+	rate_limit {
+		zone accounts_global {
+			key {vars.client_ip}
+			events 600
+			window 1m
+		}
+	}
+
+	# CAP ASSETS (Proof-of-Work CAPTCHA) — same as prod
+	@cap_assets path /cap/*
+	handle @cap_assets {
+		rate_limit {
+			zone accounts_cap {
+				key {vars.client_ip}
+				events 300
+				window 1m
+			}
+		}
+		uri strip_prefix /cap
+		reverse_proxy cap:3000
+	}
+
+	# CORS PREFLIGHT (300/min per IP) — the app answers preflights itself
+	@cors_preflight method OPTIONS
+	handle @cors_preflight {
+		rate_limit {
+			zone accounts_cors {
+				key {vars.client_ip}
+				events 300
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	# STRICT TIER (60/min per IP) — login, registration, recovery
+	@accounts_strict {
+		path /v1/auth/login/init
+		path /v1/auth/login/finalize
+		path /v1/accounts/password/init
+		path /v1/accounts/password/finalize
+		path /v1/accounts/recover/init
+		path /v1/accounts/recover/finalize
+	}
+	handle @accounts_strict {
+		rate_limit {
+			zone accounts_strict {
+				key {vars.client_ip}
+				events 60
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	@accounts_delete {
+		path /v1/accounts
+		method DELETE
+	}
+	handle @accounts_delete {
+		rate_limit {
+			zone accounts_delete {
+				key {vars.client_ip}
+				events 60
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	# MODERATE TIER (120/min per IP) — verification, OAuth authorize/token
+	@accounts_moderate {
+		path /v1/accounts/verify/*
+		path /v1/accounts/recovery-blob/fetch
+		path /oauth/authorize
+		path /oauth/token
+	}
+	handle @accounts_moderate {
+		rate_limit {
+			zone accounts_moderate {
+				key {vars.client_ip}
+				events 120
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	# STANDARD TIER (300/min per IP) — authenticated endpoints
+	@accounts_standard {
+		path /v1/auth/validate
+		path /v1/keys
+		path /v1/keys/*
+		path /v1/accounts/recovery-blob
+		path /oauth/consent
+		path /oauth/userinfo
+		path /v1/users/by-thumbprint/*
+		path /v1/users/*/keys/*
+	}
+	handle @accounts_standard {
+		rate_limit {
+			zone accounts_standard {
+				key {vars.client_ip}
+				events 300
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	# RELAXED TIER (1000/min per IP) — health, JWKS
+	@accounts_relaxed {
+		path /health
+		path /.well-known/jwks.json
+	}
+	handle @accounts_relaxed {
+		rate_limit {
+			zone accounts_relaxed {
+				key {vars.client_ip}
+				events 1000
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	# Default: web UI (served by accounts from embedded assets, as in prod)
+	handle {
+		rate_limit {
+			zone accounts_default {
+				key {vars.client_ip}
+				events 1000
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+}
+
+# ==============================================================================
+# Examples (dev: per-app containers with HMR, prod-shaped paths)
+# ==============================================================================
+http://examples.betterbase.localhost {
+	encode zstd gzip
+
+	rate_limit {
+		zone examples_global {
+			key {remote_host}
+			events 1000
+			window 1m
+		}
+	}
+
+	# Apps run with VITE_BASE_PATH=/<app>/ and serve that prefix themselves,
+	# so paths are passed through unmodified — same URLs as the prod image.
+	handle /tasks/* {
+		reverse_proxy tasks:5381
+	}
+	handle /notes/* {
+		reverse_proxy notes:5382
+	}
+	handle /photos/* {
+		reverse_proxy photos:5383
+	}
+	handle /board/* {
+		reverse_proxy board:5384
+	}
+	handle /messenger/* {
+		reverse_proxy messenger:5385
+	}
+	handle /ai-chat/* {
+		reverse_proxy ai-chat:5386
+	}
+	handle /passwords/* {
+		reverse_proxy passwords:5387
+	}
+
+	# Launchpad at / (as in prod)
+	handle {
+		reverse_proxy launchpad:5380
+	}
+}
+
+# ==============================================================================
+# betterbase-sync (Synchronization Service)
+# ==============================================================================
+http://sync.betterbase.localhost {
+	vars client_ip {remote_host}
+
+	encode zstd gzip
+
+	rate_limit {
+		zone sync_global {
+			key {vars.client_ip}
+			events 600
+			window 1m
+		}
+	}
+
+	@cors_preflight method OPTIONS
+	handle @cors_preflight {
+		rate_limit {
+			zone sync_cors {
+				key {vars.client_ip}
+				events 300
+				window 1m
+			}
+		}
+		reverse_proxy sync:5379
+	}
+
+	@sync_health {
+		path /health
+		path /.well-known/jwks.json
+	}
+	handle @sync_health {
+		rate_limit {
+			zone sync_health {
+				key {vars.client_ip}
+				events 300
+				window 1m
+			}
+		}
+		reverse_proxy sync:5379
+	}
+
+	# CLIENT WEBSOCKET RPC (120 upgrades/min per IP)
+	@sync_ws {
+		path /api/v1/ws
+	}
+	handle @sync_ws {
+		rate_limit {
+			zone sync_ws {
+				key {vars.client_ip}
+				events 120
+				window 1m
+			}
+		}
+		reverse_proxy sync:5379 {
+			flush_interval -1
+			transport http {
+				read_timeout 24h
+				write_timeout 30s
+			}
+		}
+	}
+
+	# FEDERATION WEBSOCKET (60 upgrades/min per IP)
+	@sync_federation_ws {
+		path /api/v1/federation/ws
+	}
+	handle @sync_federation_ws {
+		rate_limit {
+			zone sync_federation_ws {
+				key {vars.client_ip}
+				events 60
+				window 1m
+			}
+		}
+		reverse_proxy sync:5379 {
+			flush_interval -1
+			transport http {
+				read_timeout 24h
+				write_timeout 30s
+			}
+		}
+	}
+
+	# FEDERATION HTTP METADATA (300/min per IP)
+	@sync_federation_http {
+		path /api/v1/federation/trusted
+		path_regexp /api/v1/federation/status/.*
+	}
+	handle @sync_federation_http {
+		rate_limit {
+			zone sync_federation_http {
+				key {vars.client_ip}
+				events 300
+				window 1m
+			}
+		}
+		reverse_proxy sync:5379
+	}
+
+	# FILE UPLOAD (600/min per IP)
+	@file_upload {
+		path_regexp /api/v1/spaces/[^/]+/files/[^/]+
+		method PUT
+	}
+	handle @file_upload {
+		rate_limit {
+			zone file_upload {
+				key {vars.client_ip}
+				events 600
+				window 1m
+			}
+		}
+		reverse_proxy sync:5379
+	}
+
+	# FILE DOWNLOAD/CHECK (2000/min per IP)
+	@file_read {
+		path_regexp /api/v1/spaces/[^/]+/files/[^/]+
+		method GET HEAD
+	}
+	handle @file_read {
+		rate_limit {
+			zone file_read {
+				key {vars.client_ip}
+				events 2000
+				window 1m
+			}
+		}
+		reverse_proxy sync:5379
+	}
+
+	handle {
+		rate_limit {
+			zone sync_default {
+				key {vars.client_ip}
+				events 600
+				window 1m
+			}
+		}
+		reverse_proxy sync:5379
+	}
+}
+
+# ==============================================================================
+# Apex (identity anchor): betterbase.localhost
+# ==============================================================================
+# Same as prod: the identity domain answers discovery + webfinger + jwks via
+# the accounts server, plus the hello-world landing page.
+http://betterbase.localhost {
+	handle /.well-known/betterbase {
+		rate_limit {
+			zone apex_wellknown {
+				key {remote_host}
+				events 300
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	handle /.well-known/webfinger {
+		rate_limit {
+			zone apex_wellknown {
+				key {remote_host}
+				events 300
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	handle /.well-known/jwks.json {
+		rate_limit {
+			zone apex_wellknown {
+				key {remote_host}
+				events 300
+				window 1m
+			}
+		}
+		reverse_proxy accounts:5377
+	}
+
+	handle {
+		rate_limit {
+			zone apex_default {
+				key {remote_host}
+				events 300
+				window 1m
+			}
+		}
+		root * /srv/apex
+		file_server
+	}
+}

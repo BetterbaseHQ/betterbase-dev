@@ -1,17 +1,26 @@
 #!/usr/bin/env bash
 # setup-oauth-client.sh - Create OAuth client for an example app
-# Usage: ./scripts/setup-oauth-client.sh <app-name> <port> <env-file> [scopes...]
-# Example: ./scripts/setup-oauth-client.sh tasks 5381 examples/tasks/.env sync
-# Example: ./scripts/setup-oauth-client.sh photos 5383 examples/photos/.env sync files
+# Usage: ./scripts/setup-oauth-client.sh <app-name> <env-file> [scopes...]
+# Example: ./scripts/setup-oauth-client.sh tasks examples/tasks/.env sync
+#
+# Redirect URIs use the prod-shaped dev origin
+# (http://examples.betterbase.localhost/<app>/) so the browser flow is
+# identical to prod. launchpad is mounted at /.
 
 set -e
 
 # Args
-APP_NAME="${1:?Usage: $0 <app-name> <port> <env-file> [scopes...]}"
-PORT="${2:?Usage: $0 <app-name> <port> <env-file> [scopes...]}"
-ENV_FILE="${3:?Usage: $0 <app-name> <port> <env-file> [scopes...]}"
-shift 3
+APP_NAME="${1:?Usage: $0 <app-name> <env-file> [scopes...]}"
+ENV_FILE="${2:?Usage: $0 <app-name> <env-file> [scopes...]}"
+shift 2
 SCOPES=("$@")
+
+# Redirect URI on the canonical dev examples origin (launchpad at /)
+if [ "$APP_NAME" = "launchpad" ]; then
+    REDIRECT_URI="http://examples.betterbase.localhost/"
+else
+    REDIRECT_URI="http://examples.betterbase.localhost/${APP_NAME}/"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -70,27 +79,31 @@ if [ -f "$ENV_FILE" ]; then
     EXISTING_ID=$(grep "^VITE_OAUTH_CLIENT_ID=" "$ENV_FILE" 2>/dev/null | cut -d= -f2)
 fi
 
-# If we have an ID, verify it exists in the database
+# If we have an ID, verify it exists in the database AND carries the
+# current redirect URI (pre-.localhost clients are recreated below)
 if [ -n "$EXISTING_ID" ]; then
     # Rows print "ID:" before "Name:", so track the last seen ID
     LIST_OUTPUT=$(oauth_client_cmd list 2>&1)
     if echo "$LIST_OUTPUT" | grep -q "$EXISTING_ID"; then
-        echo -e "${GREEN}OAuth client $EXISTING_ID exists in database${NC}"
-        echo "Client ID: $EXISTING_ID"
-        upsert_root_env "$EXISTING_ID"
-        exit 0
+        if echo "$LIST_OUTPUT" | grep -A2 "$EXISTING_ID" | grep -q "$REDIRECT_URI"; then
+            echo -e "${GREEN}OAuth client $EXISTING_ID exists with redirect $REDIRECT_URI${NC}"
+            echo "Client ID: $EXISTING_ID"
+            upsert_root_env "$EXISTING_ID"
+            exit 0
+        fi
+        echo -e "${YELLOW}OAuth client $EXISTING_ID has an outdated redirect URI, recreating...${NC}"
     else
         echo -e "${YELLOW}OAuth client $EXISTING_ID not found in database, recreating...${NC}"
     fi
 fi
 
 # Create OAuth client
-echo "Creating OAuth client for $APP_NAME (http://localhost:$PORT/)"
+echo "Creating OAuth client for $APP_NAME ($REDIRECT_URI)"
 SCOPE_ARGS=()
 for s in "${SCOPES[@]}"; do
     SCOPE_ARGS+=(--scope "$s")
 done
-OUTPUT=$(oauth_client_cmd create --name "$APP_NAME" --redirect-uri "http://localhost:$PORT/" "${SCOPE_ARGS[@]}" 2>&1)
+OUTPUT=$(oauth_client_cmd create --name "$APP_NAME" --redirect-uri "$REDIRECT_URI" "${SCOPE_ARGS[@]}" 2>&1)
 
 # Extract client ID from output
 CLIENT_ID=$(echo "$OUTPUT" | grep "^Client ID:" | awk '{print $3}')

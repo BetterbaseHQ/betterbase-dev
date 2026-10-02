@@ -62,14 +62,19 @@ The dev environment auto-configures OAuth clients for all example apps on first 
 
 ### Open Your Browser
 
-Once `just dev` reports all services healthy:
+Once `just dev` reports all services healthy, open the prod-shaped dev origins
+(`*.betterbase.localhost` names resolve to your machine in any browser —
+RFC 6761 — no DNS or hosts-file setup needed):
 
-- **Auth UI**: [http://localhost:5378](http://localhost:5378) -- register an account and explore the login flow
-- **Launchpad**: [http://localhost:5380](http://localhost:5380) -- portal app (auth only)
-- **Tasks**: [http://localhost:5381](http://localhost:5381) -- offline-first todos with sync
-- **Notes**: [http://localhost:5382](http://localhost:5382) -- rich text notes with CRDT merging
+- **Auth UI**: [http://accounts.betterbase.localhost](http://accounts.betterbase.localhost) -- register an account and explore the login flow (CAPTCHA included, same as prod)
+- **Launchpad**: [http://examples.betterbase.localhost](http://examples.betterbase.localhost) -- portal app (auth only)
+- **Tasks**: [http://examples.betterbase.localhost/tasks/](http://examples.betterbase.localhost/tasks/) -- offline-first todos with sync
+- **Notes**: [http://examples.betterbase.localhost/notes/](http://examples.betterbase.localhost/notes/) -- rich text notes with CRDT merging
 
-All example apps start automatically with `just dev`. See the port table below for the full list.
+All example apps start automatically with `just dev`, served path-based on the
+examples origin exactly as in production. Each app's dev container also
+remains reachable on its direct port (e.g. `http://localhost:5381/tasks/`)
+for debugging; the canonical URLs are the `*.betterbase.localhost` ones.
 
 ### Verify
 
@@ -165,8 +170,8 @@ betterbase-dev/                        # You are here
 | | Dev (`just dev`) | Production (`just up`) |
 |---|---|---|
 | Hot reload | Yes (Rust + Vite) | No |
-| Caddy proxy | Disabled (direct port access) | Enabled (rate limiting) |
-| Example apps | All started automatically | Not started |
+| Caddy proxy | Enabled — same sites/tiers/`/cap/*` as prod (`caddy/Caddyfile.dev`), HTTP on port 80 at `*.betterbase.localhost` | Enabled (rate limiting, TLS) |
+| Example apps | All started automatically (HMR, path-based on the examples origin) | Not started |
 | SMTP | Logged to console | Real email delivery |
 | Volumes | Prefixed with `dev_` | Production volumes |
 
@@ -232,7 +237,7 @@ Database credentials (`ACCOUNTS_DB_*`, `SYNC_DB_*`) are also in `.env`.
 
 ## Infrastructure
 
-**Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync); disabled in dev mode. **CAP** proof-of-work CAPTCHA with instrumentation challenges and automated-browser blocking (version-pinned image, backed by a Redis-compatible **valkey** service). **PostgreSQL** for accounts and sync (separate databases). Dev volumes prefixed with `dev_` so `just dev-down -v` never deletes production data.
+**Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync); in dev the same edge runs at `*.betterbase.localhost` via `caddy/Caddyfile.dev`. **CAP** proof-of-work CAPTCHA with instrumentation challenges and automated-browser blocking (version-pinned image, backed by a Redis-compatible **valkey** service), exercised in dev too. **PostgreSQL** for accounts and sync (separate databases). Dev volumes prefixed with `dev_` so `just dev-down -v` never deletes production data.
 
 ## Troubleshooting
 

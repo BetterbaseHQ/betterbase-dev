@@ -1,9 +1,21 @@
 # Development overrides — must be explicitly passed with -f (not auto-loaded).
 # Uses dev-prefixed volumes so dev-down -v can never delete prod data.
+#
+# Dev runs the SAME edge as prod: Caddy fronts everything on port 80 with
+# prod-shaped origins (*.betterbase.localhost resolve to loopback in
+# browsers per RFC 6761 — no DNS setup). See caddy/Caddyfile.dev.
 services:
-  # Disable caddy in dev — services are accessed directly
+  # Caddy in dev: prod-parity edge (sites, tiers, /cap/*) on port 80 only.
+  # The 5377/5379/5380 ports from the base file stay dark here — the
+  # canonical dev origins are http://accounts.betterbase.localhost etc.
+  # Direct service ports below remain published for tooling (curl, just
+  # health, debugging), not for browsers.
   caddy:
-    profiles: ["production"]
+    ports: !override ["80:80"]
+    volumes: !override
+      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - dev_caddy_data:/data
+      - dev_caddy_config:/config
 
   accounts:
     build:
@@ -17,15 +29,15 @@ services:
     environment:
       - SMTP_DEV_MODE=true
       - SMTP_FROM=noreply@localhost
-      # CAP disabled in dev: the CAP container is internal-only and, with
-      # Caddy off (direct ports), nothing serves /cap/* — signup would demand
-      # a proof it can't fetch. Prod exercises CAP through Caddy; the e2e
-      # stack disables it for the same reason.
-      - CAP_KEY_ID=
-      - CAP_SECRET=
-      # Override endpoints so discovery returns browser-reachable URLs
-      - OAUTH_ISSUER=http://localhost:5377
-      - SYNC_ENDPOINT=http://localhost:5379/api/v1
+      # CAPTCHA runs in dev, exactly as in prod: Caddy's /cap/* tier serves
+      # the widget and challenge endpoints on the accounts origin. Keys come
+      # from .env (maintained by _ensure-cap-key). The e2e stack keeps CAP
+      # disabled: its tests run headless Chromium, which blockAutomatedBrowsers
+      # would reject.
+      # Prod-shaped origins (see caddy/Caddyfile.dev): the issuer must match
+      # the browser-facing accounts origin or OAuth/JWT validation breaks.
+      - OAUTH_ISSUER=http://accounts.betterbase.localhost
+      - SYNC_ENDPOINT=http://sync.betterbase.localhost/api/v1
       # Use committed .sqlx query cache — DB isn't migrated at compile time
       - SQLX_OFFLINE=true
     healthcheck:
@@ -50,7 +62,7 @@ services:
       - "5379:5379"
     environment:
       # Must match the OAUTH_ISSUER override on accounts so JWT issuer validation passes
-      - TRUSTED_ISSUERS=http://localhost:5377=http://accounts:5377/.well-known/jwks.json
+      - TRUSTED_ISSUERS=http://accounts.betterbase.localhost=http://accounts:5377/.well-known/jwks.json
       # Enable file storage (filesystem-backed in dev)
       - FILE_STORAGE=fs
       - FILE_FS_PATH=/var/lib/betterbase-sync/files
@@ -64,6 +76,11 @@ services:
       - dev_sync_db_data:/var/lib/postgresql/data
 
   cap:
+    # Published on loopback for the accounts web Vite dev proxy (/cap),
+    # which host-side Vite uses when developing the web UI on localhost:5378.
+    # The canonical browser route is Caddy's /cap/* tier.
+    ports:
+      - "127.0.0.1:3000:3000"
     volumes:
       - dev_cap_data:/data
 
@@ -78,6 +95,10 @@ services:
       - "5380:5380"
     environment:
       - ACCOUNTS_URL=http://accounts:5377
+      # Prod-shaped origin config: browser apps talk to the Caddy origins,
+      # launchpad mounted at / (as in prod)
+      - VITE_DOMAIN=accounts.betterbase.localhost
+      - VITE_BASE_PATH=/
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5380/"]
       start_period: 20s
@@ -94,6 +115,8 @@ services:
     environment:
       - ACCOUNTS_URL=http://accounts:5377
       - SYNC_URL=http://sync:5379
+      - VITE_DOMAIN=accounts.betterbase.localhost
+      - VITE_BASE_PATH=/tasks/
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5381/"]
       start_period: 20s
@@ -110,6 +133,8 @@ services:
     environment:
       - ACCOUNTS_URL=http://accounts:5377
       - SYNC_URL=http://sync:5379
+      - VITE_DOMAIN=accounts.betterbase.localhost
+      - VITE_BASE_PATH=/notes/
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5382/"]
       start_period: 20s
@@ -126,6 +151,8 @@ services:
     environment:
       - ACCOUNTS_URL=http://accounts:5377
       - SYNC_URL=http://sync:5379
+      - VITE_DOMAIN=accounts.betterbase.localhost
+      - VITE_BASE_PATH=/photos/
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5383/"]
       start_period: 20s
@@ -142,6 +169,8 @@ services:
     environment:
       - ACCOUNTS_URL=http://accounts:5377
       - SYNC_URL=http://sync:5379
+      - VITE_DOMAIN=accounts.betterbase.localhost
+      - VITE_BASE_PATH=/board/
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5384/"]
       start_period: 20s
@@ -158,6 +187,8 @@ services:
     environment:
       - ACCOUNTS_URL=http://accounts:5377
       - SYNC_URL=http://sync:5379
+      - VITE_DOMAIN=accounts.betterbase.localhost
+      - VITE_BASE_PATH=/passwords/
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5387/"]
       start_period: 20s
@@ -174,6 +205,8 @@ services:
     environment:
       - ACCOUNTS_URL=http://accounts:5377
       - SYNC_URL=http://sync:5379
+      - VITE_DOMAIN=accounts.betterbase.localhost
+      - VITE_BASE_PATH=/messenger/
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5385/"]
       start_period: 20s
@@ -190,6 +223,8 @@ services:
     environment:
       - ACCOUNTS_URL=http://accounts:5377
       - SYNC_URL=http://sync:5379
+      - VITE_DOMAIN=accounts.betterbase.localhost
+      - VITE_BASE_PATH=/ai-chat/
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5386/"]
       start_period: 20s
@@ -199,3 +234,5 @@ volumes:
   dev_sync_db_data:
   dev_sync_files:
   dev_cap_data:
+  dev_caddy_data:
+  dev_caddy_config:
