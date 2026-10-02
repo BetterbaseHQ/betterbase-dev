@@ -232,7 +232,7 @@ Database credentials (`ACCOUNTS_DB_*`, `SYNC_DB_*`) are also in `.env`.
 
 ## Infrastructure
 
-**Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync); disabled in dev mode. **CAP** proof-of-work CAPTCHA (digest-pinned image, backed by a Redis-compatible **valkey** service). **PostgreSQL** for accounts and sync (separate databases). Dev volumes prefixed with `dev_` so `just dev-down -v` never deletes production data.
+**Caddy** reverse proxy with tiered rate limiting (60/min login, 120/min auth, 300/min general, 1000/min sync); disabled in dev mode. **CAP** proof-of-work CAPTCHA with instrumentation challenges and automated-browser blocking (version-pinned image, backed by a Redis-compatible **valkey** service). **PostgreSQL** for accounts and sync (separate databases). Dev volumes prefixed with `dev_` so `just dev-down -v` never deletes production data.
 
 ## Troubleshooting
 

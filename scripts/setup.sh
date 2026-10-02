@@ -325,13 +325,18 @@ provision_cap() {
     auth_payload="{\"token\":\"$session_token\",\"hash\":\"$hashed_token\"}"
     auth_token=$(echo -n "$auth_payload" | base64 | tr -d '\n')
 
-    # Create site key
+    # Create site key with the full feature set: instrumentation challenges
+    # (browser-environment verification alongside the PoW) plus automated-
+    # browser blocking. See https://trycap.dev/guide/instrumentation.html.
+    # HashWX (GPU-resistant PoW) is not yet in a stable release; revisit on
+    # the next bump. blockNonBrowserUA stays off — our own provisioning and
+    # health checks fetch challenges with curl.
     log_info "Creating CAP site key..."
     local key_response
     key_response=$(cap_curl -X POST http://cap:3000/server/keys \
         -H "Authorization: Bearer $auth_token" \
         -H "Content-Type: application/json" \
-        -d '{"name":"betterbase-accounts"}' 2>&1) || {
+        -d '{"name":"betterbase-accounts","instrumentation":true,"obfuscationLevel":3,"blockAutomatedBrowsers":true}' 2>&1) || {
         log_error "Failed to create CAP site key"
         docker compose stop cap
         exit 1

@@ -1,12 +1,12 @@
 # Compose file combos — prod uses base only, dev layers overrides on top.
 # Dev volumes are prefixed with dev_ so dev-down -v can never delete prod data.
 prod_compose := "docker compose -f docker-compose.yml"
-dev_compose  := "docker compose -f docker-compose.yml -f docker-compose.dev.yml"
+dev_compose := "docker compose -f docker-compose.yml -f docker-compose.dev.yml"
 # E2E is a standalone compose project (`name: betterbase-e2e` in the file), so
 # it owns its own containers/network/volumes and can run alongside dev.
 # Interpolation: root .env holds shared secrets; e2e/.env.docker (written by
 # `just e2e-setup`) holds e2e-only federation pins.
-e2e_compose  := "docker compose --project-directory . --env-file .env --env-file e2e/.env.docker -f e2e/compose.yaml"
+e2e_compose := "docker compose --project-directory . --env-file .env --env-file e2e/.env.docker -f e2e/compose.yaml"
 
 # List available recipes
 default:
@@ -38,7 +38,7 @@ prod:
         echo "No .env found, running setup..."
         ./scripts/setup.sh
     fi
-    {{prod_compose}} up -d
+    {{ prod_compose }} up -d
 
 # Build and start production
 prod-build:
@@ -48,11 +48,11 @@ prod-build:
         echo "No .env found, running setup..."
         ./scripts/setup.sh
     fi
-    {{prod_compose}} up -d --build
+    {{ prod_compose }} up -d --build
 
 # Stop production services
 prod-down:
-    {{prod_compose}} down
+    {{ prod_compose }} down
 
 # Start services (alias for prod)
 up:
@@ -62,7 +62,7 @@ up:
         echo "No .env found, running setup..."
         ./scripts/setup.sh
     fi
-    {{prod_compose}} up -d
+    {{ prod_compose }} up -d
 
 # Build and start production
 up-build:
@@ -72,11 +72,11 @@ up-build:
         echo "No .env found, running setup..."
         ./scripts/setup.sh
     fi
-    {{prod_compose}} up -d --build
+    {{ prod_compose }} up -d --build
 
 # Stop all services (dev, prod, and e2e, whichever are running)
 down:
-    {{dev_compose}} down 2>/dev/null; {{prod_compose}} down 2>/dev/null; [ -f e2e/.env.docker ] && {{e2e_compose}} down 2>/dev/null; true
+    {{ dev_compose }} down 2>/dev/null; {{ prod_compose }} down 2>/dev/null; [ -f e2e/.env.docker ] && {{ e2e_compose }} down 2>/dev/null; true
 
 # Run checks on all repos (SDK, accounts, sync, inference, json-joy-rs, examples)
 check-all:
@@ -142,15 +142,15 @@ check-release:
 
 # Backup production data (both DBs + blob files + certs) to backups/<timestamp>
 backup *args:
-    ./scripts/backup.sh {{args}}
+    ./scripts/backup.sh {{ args }}
 
 # Restore production data from a backup directory
 restore dir:
-    ./scripts/backup.sh --restore {{dir}}
+    ./scripts/backup.sh --restore {{ dir }}
 
 # Clean up dev environment including volumes
 clean:
-    {{dev_compose}} down -v
+    {{ dev_compose }} down -v
 
 # =============================================================================
 # Development (fully containerized with hot reload)
@@ -165,7 +165,7 @@ dev:
         ./scripts/setup.sh
     fi
     just _ensure-dev-config
-    {{dev_compose}} up --build
+    {{ dev_compose }} up --build
 
 # Start dev environment in background
 dev-bg:
@@ -176,7 +176,7 @@ dev-bg:
         ./scripts/setup.sh
     fi
     just _ensure-dev-config
-    {{dev_compose}} up -d --build
+    {{ dev_compose }} up -d --build
 
 # Ensure CAP site key and OAuth clients are configured for dev volumes
 [private]
@@ -192,7 +192,7 @@ _ensure-dev-config:
     if curl -sf http://localhost:5377/health > /dev/null 2>&1; then
         ACCOUNTS_WAS_RUNNING=true
     else
-        {{dev_compose}} up -d --build accounts
+        {{ dev_compose }} up -d --build accounts
         echo "Waiting for accounts to be healthy..."
         TRIES=0
         MAX_TRIES=60
@@ -201,14 +201,14 @@ _ensure-dev-config:
             if [ "$TRIES" -ge "$MAX_TRIES" ]; then
                 echo "Error: accounts service did not become healthy after ${MAX_TRIES}s"
                 echo "Container logs:"
-                {{dev_compose}} logs --tail 30 accounts 2>&1 | grep -v "variable is not set"
+                {{ dev_compose }} logs --tail 30 accounts 2>&1 | grep -v "variable is not set"
                 exit 1
             fi
             # Check if container exited
-            if ! {{dev_compose}} ps --status running accounts 2>/dev/null | grep -q accounts; then
+            if ! {{ dev_compose }} ps --status running accounts 2>/dev/null | grep -q accounts; then
                 echo "Error: accounts container exited unexpectedly"
                 echo "Container logs:"
-                {{dev_compose}} logs --tail 30 accounts 2>&1 | grep -v "variable is not set"
+                {{ dev_compose }} logs --tail 30 accounts 2>&1 | grep -v "variable is not set"
                 exit 1
             fi
             sleep 1
@@ -220,7 +220,7 @@ _ensure-dev-config:
 
     # Stop accounts if we started it (will be restarted with everything)
     if [ "$ACCOUNTS_WAS_RUNNING" = false ]; then
-        {{dev_compose}} stop accounts
+        {{ dev_compose }} stop accounts
     fi
 
 # Ensure CAP site key in .env matches the dev_cap_data volume
@@ -240,21 +240,21 @@ _ensure-cap-key:
 
     # Start CAP if not running
     CAP_WAS_RUNNING=false
-    if {{dev_compose}} ps --status running cap 2>/dev/null | grep -q cap; then
+    if {{ dev_compose }} ps --status running cap 2>/dev/null | grep -q cap; then
         CAP_WAS_RUNNING=true
     else
-        {{dev_compose}} up -d cap
+        {{ dev_compose }} up -d cap
     fi
 
     # Wait for CAP to be healthy (uses Docker healthcheck)
     echo "Waiting for CAP to be healthy..."
     TRIES=0
     MAX_TRIES=60
-    until {{dev_compose}} ps cap --format json 2>/dev/null | python3 -c "import sys,json; exit(0 if json.load(sys.stdin).get('Health')=='healthy' else 1)" 2>/dev/null; do
+    until {{ dev_compose }} ps cap --format json 2>/dev/null | python3 -c "import sys,json; exit(0 if json.load(sys.stdin).get('Health')=='healthy' else 1)" 2>/dev/null; do
         TRIES=$((TRIES + 1))
         if [ "$TRIES" -ge "$MAX_TRIES" ]; then
             echo "Error: CAP service did not become healthy after ${MAX_TRIES}s"
-            {{dev_compose}} logs --tail 10 cap 2>&1
+            {{ dev_compose }} logs --tail 10 cap 2>&1
             exit 1
         fi
         sleep 1
@@ -264,13 +264,39 @@ _ensure-cap-key:
     NETWORK=$(docker network ls | grep betterbase | awk '{print $2}' | head -1)
     cap_curl() { docker run --rm --network "$NETWORK" curlimages/curl:latest -sf "$@"; }
 
+    # Log in to the CAP admin API and echo the bearer token.
+    cap_admin_token() {
+        LOGIN=$(cap_curl -X POST http://cap:3000/auth/login \
+            -H "Content-Type: application/json" \
+            -d "{\"admin_key\":\"$CAP_ADMIN_KEY\"}")
+        SESSION=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['session_token'])")
+        HASH=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['hashed_token'])")
+        printf '{"token":"%s","hash":"%s"}' "$SESSION" "$HASH" | base64 | tr -d '\n'
+    }
+
+    # Keep the site key on the full feature set. Idempotent, so keys created
+    # before instrumentation was enabled get upgraded in place. HashWX
+    # (GPU-resistant PoW) is not yet in a stable release; revisit on the
+    # next image bump. blockNonBrowserUA stays off — this recipe (and
+    # provisioning) fetch challenges with curl.
+    enforce_cap_config() {
+        AUTH_TOKEN=$(cap_admin_token) || { echo "Warning: CAP admin login failed; skipping config enforcement"; return 0; }
+        cap_curl -X PUT "http://cap:3000/server/keys/${CAP_KEY_ID:-$NEW_KEY_ID}/config" \
+            -H "Authorization: Bearer $AUTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"instrumentation":true,"obfuscationLevel":3,"blockAutomatedBrowsers":true}' >/dev/null \
+            && echo "CAP site key config enforced (instrumentation + bot blocking)" \
+            || echo "Warning: failed to enforce CAP site key config"
+    }
+
     # Test if the existing site key works
     if [ -n "$CAP_KEY_ID" ]; then
         CHALLENGE=$(cap_curl -X POST "http://cap:3000/${CAP_KEY_ID}/challenge" 2>/dev/null || true)
         if echo "$CHALLENGE" | grep -q '"token"'; then
             echo "CAP site key $CAP_KEY_ID verified"
+            enforce_cap_config
             if [ "$CAP_WAS_RUNNING" = false ]; then
-                {{dev_compose}} stop cap
+                {{ dev_compose }} stop cap
             fi
             exit 0
         fi
@@ -279,22 +305,14 @@ _ensure-cap-key:
 
     # Login to CAP admin API
     echo "Authenticating with CAP..."
-    LOGIN=$(cap_curl -X POST http://cap:3000/auth/login \
-        -H "Content-Type: application/json" \
-        -d "{\"admin_key\":\"$CAP_ADMIN_KEY\"}")
+    AUTH_TOKEN=$(cap_admin_token)
 
-    SESSION=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['session_token'])")
-    HASH=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['hashed_token'])")
-
-    AUTH_PAYLOAD="{\"token\":\"$SESSION\",\"hash\":\"$HASH\"}"
-    AUTH_TOKEN=$(echo -n "$AUTH_PAYLOAD" | base64 | tr -d '\n')
-
-    # Create site key
+    # Create site key with the full feature set
     echo "Creating CAP site key..."
     KEY_RESPONSE=$(cap_curl -X POST http://cap:3000/server/keys \
         -H "Authorization: Bearer $AUTH_TOKEN" \
         -H "Content-Type: application/json" \
-        -d '{"name":"betterbase-accounts"}')
+        -d '{"name":"betterbase-accounts","instrumentation":true,"obfuscationLevel":3,"blockAutomatedBrowsers":true}')
 
     NEW_KEY_ID=$(echo "$KEY_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['siteKey'])")
     NEW_SECRET=$(echo "$KEY_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['secretKey'])")
@@ -315,25 +333,26 @@ _ensure-cap-key:
     fi
 
     echo "CAP site key created: $NEW_KEY_ID"
+    enforce_cap_config
     echo "Updated .env with new CAP credentials"
 
     if [ "$CAP_WAS_RUNNING" = false ]; then
-        {{dev_compose}} stop cap
+        {{ dev_compose }} stop cap
     fi
 
 # View dev logs (all services or specific service)
 dev-logs *args:
-    {{dev_compose}} logs -f {{args}}
+    {{ dev_compose }} logs -f {{ args }}
 
 # Rebuild dev containers (after Dockerfile.dev or dependency changes).
 # --renew-anon-volumes is the point: node_modules lives in anonymous
 # volumes, which would otherwise survive the rebuild and stay stale.
 dev-rebuild:
-    {{dev_compose}} build && {{dev_compose}} up --renew-anon-volumes
+    {{ dev_compose }} build && {{ dev_compose }} up --renew-anon-volumes
 
 # Stop dev environment and remove volumes (DB data is ephemeral in dev)
 dev-down:
-    {{dev_compose}} down -v
+    {{ dev_compose }} down -v
 
 # =============================================================================
 # Git Operations
@@ -434,27 +453,27 @@ git-push:
 
 # Build dev images without starting
 build:
-    {{dev_compose}} build
+    {{ dev_compose }} build
 
 # Restart all dev services
 restart:
-    {{dev_compose}} restart
+    {{ dev_compose }} restart
 
 # Restart a specific dev service (e.g., accounts, sync, launchpad)
 restart-service service:
-    {{dev_compose}} restart {{service}}
+    {{ dev_compose }} restart {{ service }}
 
 # Show docker-compose status
 ps:
-    {{dev_compose}} ps
+    {{ dev_compose }} ps
 
 # Remove all dev containers and images (full reset, includes e2e)
 nuke:
     #!/usr/bin/env bash
     set -e
-    {{dev_compose}} down -v --rmi local
+    {{ dev_compose }} down -v --rmi local
     just _ensure-e2e-env
-    {{e2e_compose}} down -v --rmi local || true
+    {{ e2e_compose }} down -v --rmi local || true
     rm -f e2e/.env.docker
 
 # =============================================================================
@@ -499,19 +518,19 @@ wait:
 
 # Shell into accounts container
 shell-accounts:
-    {{dev_compose}} exec accounts sh
+    {{ dev_compose }} exec accounts sh
 
 # Shell into sync container
 shell-sync:
-    {{dev_compose}} exec sync sh
+    {{ dev_compose }} exec sync sh
 
 # PostgreSQL shell for accounts database
 db-accounts:
-    {{dev_compose}} exec accounts-db psql -U ${ACCOUNTS_DB_USER:-accounts} -d ${ACCOUNTS_DB_NAME:-accounts}
+    {{ dev_compose }} exec accounts-db psql -U ${ACCOUNTS_DB_USER:-accounts} -d ${ACCOUNTS_DB_NAME:-accounts}
 
 # PostgreSQL shell for sync database
 db-sync:
-    {{dev_compose}} exec sync-db psql -U ${SYNC_DB_USER:-sync} -d ${SYNC_DB_NAME:-sync}
+    {{ dev_compose }} exec sync-db psql -U ${SYNC_DB_USER:-sync} -d ${SYNC_DB_NAME:-sync}
 
 # =============================================================================
 # OAuth Client Setup
@@ -529,16 +548,16 @@ oauth-client-cmd *args:
     DB_NAME="${ACCOUNTS_DB_NAME:-accounts}"
     DB_URL="postgres://${DB_USER}:${DB_PASS}@accounts-db:5432/${DB_NAME}?sslmode=disable"
     # Try compiled binary first (prod), fall back to cargo run (dev)
-    if {{dev_compose}} exec -T accounts test -f /app/oauth-client 2>/dev/null; then
-        {{dev_compose}} exec -T -e "DATABASE_URL=$DB_URL" accounts /app/oauth-client {{args}}
+    if {{ dev_compose }} exec -T accounts test -f /app/oauth-client 2>/dev/null; then
+        {{ dev_compose }} exec -T -e "DATABASE_URL=$DB_URL" accounts /app/oauth-client {{ args }}
     else
-        {{dev_compose}} exec -T -e "DATABASE_URL=$DB_URL" -e "SQLX_OFFLINE=true" accounts cargo run --release -p betterbase-accounts-oauth-client -- {{args}}
+        {{ dev_compose }} exec -T -e "DATABASE_URL=$DB_URL" -e "SQLX_OFFLINE=true" accounts cargo run --release -p betterbase-accounts-oauth-client -- {{ args }}
     fi
 
 # Set up OAuth client for an example app
 # Usage: just setup-example <app-name> <port> [scopes...]
 setup-example app port *scopes:
-    ./scripts/setup-oauth-client.sh {{app}} {{port}} ./betterbase-examples/{{app}}/.env {{scopes}}
+    ./scripts/setup-oauth-client.sh {{ app }} {{ port }} ./betterbase-examples/{{ app }}/.env {{ scopes }}
 
 # Set up launchpad OAuth client (portal only — no sync needed)
 setup-launchpad:
@@ -606,21 +625,21 @@ _ensure-e2e-env:
 _e2e-wait url service:
     #!/usr/bin/env bash
     set -e
-    echo "Waiting for {{service}}..."
+    echo "Waiting for {{ service }}..."
     TRIES=0
     MAX_TRIES=120
-    until curl -sf "{{url}}" > /dev/null 2>&1; do
+    until curl -sf "{{ url }}" > /dev/null 2>&1; do
         TRIES=$((TRIES + 1))
         if [ "$TRIES" -ge "$MAX_TRIES" ]; then
-            echo "Error: {{service}} did not become healthy after ${MAX_TRIES}s"
+            echo "Error: {{ service }} did not become healthy after ${MAX_TRIES}s"
             echo "Container logs:"
             just _ensure-e2e-env
-            {{e2e_compose}} logs --tail 30 {{service}} 2>&1 || true
+            {{ e2e_compose }} logs --tail 30 {{ service }} 2>&1 || true
             exit 1
         fi
         sleep 1
     done
-    echo "{{service}} is healthy"
+    echo "{{ service }} is healthy"
 
 # Start e2e services (isolated compose project — safe to run alongside dev)
 e2e-up:
@@ -639,14 +658,14 @@ e2e-up:
         echo "OPAQUE_SERVER_SETUP_B=$SETUP_B" >> e2e/.env.docker
         echo "Server B OPAQUE keys generated"
     fi
-    {{e2e_compose}} up -d --build
+    {{ e2e_compose }} up -d --build
 
 # Stop e2e services
 e2e-down:
     #!/usr/bin/env bash
     set -e
     just _ensure-e2e-env
-    {{e2e_compose}} down
+    {{ e2e_compose }} down
 
 # Stop e2e services and remove volumes (clean slate). Never touches dev/prod.
 # Also drops e2e/.env.docker — its federation pins and Server B OPAQUE key
@@ -655,7 +674,7 @@ e2e-clean:
     #!/usr/bin/env bash
     set -e
     just _ensure-e2e-env
-    {{e2e_compose}} down -v
+    {{ e2e_compose }} down -v
     rm -f e2e/.env.docker
 
 # View e2e service logs
@@ -663,7 +682,7 @@ e2e-logs *args:
     #!/usr/bin/env bash
     set -e
     just _ensure-e2e-env
-    {{e2e_compose}} logs -f {{args}}
+    {{ e2e_compose }} logs -f {{ args }}
 
 # Set up e2e stack: start services, exchange federation keys, create OAuth
 # clients, write e2e/.env. Idempotent — safe to re-run any time.
@@ -723,7 +742,7 @@ e2e-setup:
 
     # Recreate sync services to pick up peer trusted keys (env is read at startup)
     just _ensure-e2e-env
-    {{e2e_compose}} up -d --force-recreate sync sync-b
+    {{ e2e_compose }} up -d --force-recreate sync sync-b
 
     just _e2e-wait http://localhost:25379/health sync
     just _e2e-wait http://localhost:25389/health sync-b
@@ -743,7 +762,7 @@ e2e-setup:
         local CLIENT_ID=""
         if [ -n "$EXISTING_ID" ]; then
             local LIST_OUTPUT
-            LIST_OUTPUT=$({{e2e_compose}} exec -T "$CONTAINER" /app/oauth-client list 2>&1)
+            LIST_OUTPUT=$({{ e2e_compose }} exec -T "$CONTAINER" /app/oauth-client list 2>&1)
             if echo "$LIST_OUTPUT" | grep -q "$EXISTING_ID"; then
                 echo "${SERVER_LABEL} OAuth client $EXISTING_ID already exists"
                 CLIENT_ID="$EXISTING_ID"
@@ -751,11 +770,11 @@ e2e-setup:
         fi
         if [ -z "$CLIENT_ID" ]; then
             local OUTPUT
-            OUTPUT=$({{e2e_compose}} exec -T "$CONTAINER" /app/oauth-client create --name e2e-tests --redirect-uri "http://localhost:25390/" --scope sync --scope files 2>&1)
+            OUTPUT=$({{ e2e_compose }} exec -T "$CONTAINER" /app/oauth-client create --name e2e-tests --redirect-uri "http://localhost:25390/" --scope sync --scope files 2>&1)
             CLIENT_ID=$(echo "$OUTPUT" | grep "^Client ID:" | awk '{print $3}')
             if [ -z "$CLIENT_ID" ]; then
                 local LIST_OUTPUT
-                LIST_OUTPUT=$({{e2e_compose}} exec -T "$CONTAINER" /app/oauth-client list 2>&1)
+                LIST_OUTPUT=$({{ e2e_compose }} exec -T "$CONTAINER" /app/oauth-client list 2>&1)
                 CLIENT_ID=$(echo "$LIST_OUTPUT" | grep -A1 "Name:.*e2e-tests" | grep "ID:" | head -1 | awk '{print $2}')
             fi
             if [ -z "$CLIENT_ID" ]; then
@@ -786,13 +805,13 @@ e2e-setup:
 
 # Run e2e tests (services must be running via e2e-setup; pass -x to stop on first failure)
 e2e-test *args:
-    cd e2e && E2E_COMPOSE="{{e2e_compose}}" pnpm test {{args}}
+    cd e2e && E2E_COMPOSE="{{ e2e_compose }}" pnpm test {{ args }}
 
 # Fault-injection phase: real server restarts against the e2e stack.
 # Runs single-worker (restarts would disturb parallel tests). Stack must be
 # up via `just e2e-setup`; included automatically in `just e2e`.
 e2e-faults *args:
-    cd e2e && E2E_COMPOSE="{{e2e_compose}}" E2E_FAULT_INJECTION=1 PW_WORKERS=1 pnpm test tests/fault-injection.spec.ts {{args}}
+    cd e2e && E2E_COMPOSE="{{ e2e_compose }}" E2E_FAULT_INJECTION=1 PW_WORKERS=1 pnpm test tests/fault-injection.spec.ts {{ args }}
 
 # Full E2E cycle: clean → setup → run tests. Safe to run while dev is up.
 e2e *args:
@@ -800,7 +819,7 @@ e2e *args:
     set -e
     just e2e-clean 2>/dev/null || true
     just e2e-setup
-    just e2e-test {{args}}
+    just e2e-test {{ args }}
     just e2e-faults
 
 # SDK↔server integration suite: real SDK clients (headless chromium, full
@@ -812,4 +831,4 @@ sdk-integration *args:
     #!/usr/bin/env bash
     set -e
     just e2e-up
-    cd betterbase/js && pnpm typecheck && BB_INTEGRATION_REQUIRED=1 pnpm vitest run --config vitest.integration.config.ts {{args}}
+    cd betterbase/js && pnpm typecheck && BB_INTEGRATION_REQUIRED=1 pnpm vitest run --config vitest.integration.config.ts {{ args }}
