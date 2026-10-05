@@ -8,8 +8,8 @@
 
 [components]
 betterbase = "79b2a25fd7d708591d6cb461619477bd10703e52"
-betterbase-accounts = "60d769d299ba2b889f8a4f5434c53bac23c82705"
-betterbase-sync = "0113ab2e841ff33a60ed9b9e87844d4f4c4560f4"
+betterbase-accounts = "0b2d163e9da37e913c8360a2d2375e3722372b70"
+betterbase-sync = "d010885fae20d6f5dfaaf2fe08f9ac26700f17c5"
 betterbase-inference = "819031838e117595cfea13cba3ef3b878109dd59"
-betterbase-examples = "1ad2d0b065c9e31fad40774ff1fec2f0b2568abf"
+betterbase-examples = "ebc464cac829f95ef7406f8d853141408e9030cc"
 json-joy-rs = "b232a36a2c1014402550f384b14631036302d986"
